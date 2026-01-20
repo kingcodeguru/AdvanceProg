@@ -1,0 +1,21 @@
+FROM gcc:latest
+
+# Define that we expect an argument
+ARG DRIVE_APP_DIR
+
+RUN apt-get update && apt-get install -y cmake
+
+COPY . /usr/src/ServerDir
+
+WORKDIR /usr/src/ServerDir
+
+RUN mkdir build
+WORKDIR /usr/src/ServerDir/build
+
+# # creating a new public environment variable
+# ENV DRIVE_APP_DIR=dir
+# create a directory for it
+RUN mkdir -p $DRIVE_APP_DIR
+
+
+RUN cmake ../src/File_Server && make

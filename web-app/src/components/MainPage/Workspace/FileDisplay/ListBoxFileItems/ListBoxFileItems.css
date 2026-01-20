@@ -1,0 +1,25 @@
+.container-fluid {
+    background-color: #fff;
+}
+
+.empty-folder-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* Centers horizontally */
+    justify-content: center;   /* Centers vertically */
+    height: 100%;             
+    width: 100%;
+
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.empty-folder-icon {
+    width: 500px; 
+    height: auto;
+    margin-bottom: 20px;
+    margin-top: 150px;
+    /* Optional: Ensure it works with theme transitions */
+    transition: opacity 0.3s ease;
+}

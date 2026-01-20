@@ -1,0 +1,36 @@
+/* Container takes full size of the parent box */
+.file-preview-wrapper {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start; /* Align text to top */
+    justify-content: center;
+    background-color: white;
+}
+
+/* Image styling, covers the box perfectly */
+.preview-image-content {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image covers the area without distortion */
+    object-position: top;
+}
+
+/* Text styling, simulates a document preview */
+.preview-text-content {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    font-size: 10px; /* Small text for preview */
+    color: #555;
+    text-align: left; /* Or right for Hebrew if needed */
+    line-height: 1.4;
+    word-break: break-word; /* Prevents long words from breaking layout */
+    
+    /* Ellipsis for long text (shows only first few lines) */
+    display: -webkit-box;
+    -webkit-line-clamp: 10;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

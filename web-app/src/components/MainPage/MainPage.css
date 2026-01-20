@@ -1,0 +1,59 @@
+/* MainPage Layout Structure */
+.main-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  /* Use global background variable for the wrapper */
+  background-color: var(--bg-navbar); 
+}
+
+.main-content-layout {
+  display: flex; /* Sidebar and Workspace side-by-side */
+  flex: 1;       /* Occupies remaining vertical space below Navbar */
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Sidebar Region */
+.sidebar {
+  width: 240px; 
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar); /* Dynamically changes with theme */
+  transition: background-color 0.3s ease;
+}
+
+/* Workspace / Content Area */
+.content-area {
+  flex: 1; 
+  /* The main "white" or "dark" sheet where files are displayed */
+  background-color: var(--bg-primary); 
+  
+  /* Rounded corner aesthetic */
+  border-top-left-radius: 16px; 
+  margin-top: 8px;
+  margin-right: 8px; /* Added spacing for symmetry */
+  margin-bottom: 8px; /* Added spacing for symmetry */
+  
+  overflow-y: auto; 
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  
+  /* Ensure text inside uses the theme color */
+  color: var(--text-main);
+}
+
+/* Scrollbar Styling for Content Area */
+.content-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}

@@ -1,0 +1,12 @@
+FROM gcc:latest
+
+RUN apt-get update && apt-get install -y cmake
+
+COPY . /usr/src/CppClient
+
+WORKDIR /usr/src/CppClient
+
+RUN mkdir build
+WORKDIR /usr/src/CppClient/build
+
+RUN cmake ../src/Client && make

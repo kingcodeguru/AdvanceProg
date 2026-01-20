@@ -1,0 +1,109 @@
+.view-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 20px;
+    background-color: var(--bg-primary); /* Sheet layer */
+    color: var(--text-main);
+    transition: background-color 0.3s ease;
+}
+
+.welcome-title {
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text-main);
+    text-transform: capitalize;
+}
+
+.table-header th {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary); /* Metadata hierarchy */
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.file-row {
+    height: 48px;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background-color 0.1s;
+    cursor: pointer;
+}
+
+.file-row:hover {
+    background-color: var(--bg-hover);
+}
+
+.file-row td {
+    padding: 8px;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.no-files-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-disabled);
+    font-style: italic;
+}
+
+.workspace-header {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.header-left {
+    display: flex;             /* 4. Keep arrow and title side-by-side */
+    align-items: center;
+    gap: 12px;                 /* 5. Space between arrow and text */
+}
+
+.view-switcher-pill {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;       
+  overflow: hidden;
+  background-color: var(--bg-main);
+}
+
+.switcher-btn {
+  display: flex;
+  align-items: center;
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.switcher-btn.active {
+  background-color: var(--active-blue);
+  color: var(--text-main);
+}
+
+.switcher-btn:hover:not(.active) {
+  background-color: var(--bg-hover);
+}
+
+.switcher-icon {
+  width: 18px;
+  height: 18px;
+  /* This ensures the icon color changes with your theme variables */
+  background-color: var(--text-main); 
+  mask-image: var(--icon-url);
+  -webkit-mask-image: var(--icon-url);
+}
+
+.back-btn .material-icons {
+    color: var(--text-main);
+    margin-right: 5px;
+    background: none;
+    border: none;
+}
+.back-btn:hover .material-icons {
+    color: var(--brand-blue);
+}

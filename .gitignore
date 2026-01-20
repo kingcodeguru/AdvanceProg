@@ -1,0 +1,9 @@
+/Web_Server/node_modules
+/Web_Server/config/.env.local
+npm-debug.log
+*.log
+tamar_helpers
+build
+node_modules
+build2
+my-drive-app

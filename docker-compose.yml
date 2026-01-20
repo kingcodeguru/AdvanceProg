@@ -1,0 +1,91 @@
+volumes:
+  drive_volume:
+
+services:
+  # --------------------------------------------------------------------------
+  # first executable: tests
+  # --------------------------------------------------------------------------
+  tests:
+    build:
+      context: .
+      dockerfile: tests/part2/Dockerfile.tests
+    
+  # --------------------------------------------------------------------------
+  # second executable: fileServer
+  # --------------------------------------------------------------------------
+  file_server:
+    build:
+      context: .
+      dockerfile: src/File_Server/Dockerfile.server
+      args:
+        - DRIVE_APP_DIR=dir  # This makes it available DURING build
+    container_name: drive-file-server
+    ports:
+      - "2385:2385"
+    volumes:
+      - drive_volume:/usr/src/mytest/build/dir
+    environment:
+      - THREAD_POOL_SIZE=10
+      - DRIVE_APP_DIR=dir
+    command: ["./server", "2385"]
+    
+  # --------------------------------------------------------------------------
+  # third executable: client
+  # --------------------------------------------------------------------------
+  cppclient:
+    build:
+      context: .
+      dockerfile: src/Client/Dockerfile.cppClient
+    container_name: drive-client
+    stdin_open: true  # Keeps STDIN open (Docker -i)
+    tty: true         # Allocates a pseudo-TTY (Docker -t)
+    depends_on:
+    - file_server
+    command: ["./client", "file_server", "2385"]
+    
+  # --------------------------------------------------------------------------
+  # forth executable: client
+  # --------------------------------------------------------------------------
+  pyclient:
+    build:
+      context: .
+      dockerfile: src/Client/Dockerfile.pyClient
+    container_name: drive-client
+    stdin_open: true  # Keeps STDIN open (Docker -i)
+    tty: true         # Allocates a pseudo-TTY (Docker -t)
+    depends_on:
+    - file_server
+    command: ["python3", "Client.py", "file_server", "2385"]
+    
+  # --------------------------------------------------------------------------
+  # fifth executable: web server
+  # --------------------------------------------------------------------------
+  web_server:
+    build:
+      context: .
+      dockerfile: src/Web_Server/Dockerfile.server
+    container_name: drive-web-server
+    ports:
+      - "8080:8080"
+    environment:
+      - WEB_PORT=8080
+      - FS_IP=file_server
+      - FS_PORT=2385
+      - LEN_SIZE=12
+    command: ["node", "src/Web_Server/app.js"]
+    
+  # --------------------------------------------------------------------------
+  # sixth executable: web server
+  # --------------------------------------------------------------------------
+  web_app:
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile.app
+    container_name: drive-web-app
+    ports:
+      - "3000:3000"
+    environment:
+      - WEB_PORT=3000
+      - WS_IP=web_server
+      - WS_PORT=8080
+    command: ["npm", "start"]

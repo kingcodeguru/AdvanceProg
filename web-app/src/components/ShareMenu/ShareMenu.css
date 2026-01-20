@@ -1,0 +1,279 @@
+/* Main overlay background */
+.share-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Modal container */
+.share-modal {
+    background: white;
+    width: 500px;
+    max-width: 90%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 20px;
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+}
+
+.share-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.share-header h2 {
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0;
+    color: #202124;
+}
+
+/* Add People Section */
+.add-people-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+}
+
+.add-people-container:focus-within {
+    background-color: white;
+    border-color: #1a73e8;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.add-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    outline: none;
+}
+
+.role-select-new {
+    border: none;
+    background: transparent;
+    color: #5f6368;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+}
+
+.btn-send {
+    border: none;
+    background: transparent;
+    color: #1a73e8;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-send:disabled {
+    color: #dadce0;
+    cursor: default;
+}
+
+/* User List Section */
+.people-list-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #202124;
+    margin-top: 10px;
+}
+
+.people-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.person-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.person-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #8e24aa;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 500;
+    text-transform: uppercase;
+    line-height: 1;
+    padding-top: 1px;
+}
+
+.person-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.person-name {
+    font-size: 14px;
+    color: #202124;
+    font-weight: 500;
+}
+
+.person-email {
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.you-tag {
+    color: #5f6368;
+    font-weight: 400;
+}
+
+/* User Actions */
+.person-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.role-select-existing {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: #5f6368;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+    font-weight: 500;
+}
+
+.role-select-existing:hover:not(:disabled) {
+    background-color: #f1f3f4;
+    color: #202124;
+}
+
+.role-text-only {
+    font-size: 13px;
+    color: #5f6368;
+    padding: 6px 10px;
+}
+
+.btn-remove {
+    background: transparent;
+    border: none;
+    color: #5f6368;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-remove:hover {
+    background-color: #f1f3f4;
+    color: #d93025;
+}
+
+/* Footer Section */
+.share-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+}
+
+.btn-copy-link {
+    background: white;
+    border: 1px solid #dadce0;
+    border-radius: 18px;
+    padding: 6px 16px;
+    color: #1a73e8;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.1s;
+}
+
+.btn-copy-link:hover {
+    background-color: #f1f3f4;
+    border-color: #d2e3fc;
+}
+
+.btn-done {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-done:hover {
+    background-color: #1765cc;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3);
+}
+
+/* Toast Notifications */
+.toast-message {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #323232;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+    white-space: nowrap;
+    z-index: 1010;
+}
+
+.toast-message.error {
+    background-color: #d93025;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; bottom: 10px; }
+    to { opacity: 1; bottom: 20px; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; bottom: 20px; }
+    to { opacity: 0; bottom: 10px; }
+}

@@ -1,0 +1,20 @@
+FROM gcc:latest
+
+RUN apt-get update && apt-get install -y cmake
+
+COPY . /usr/src/mytest
+
+WORKDIR /usr/src/mytest
+
+RUN mkdir build
+WORKDIR /usr/src/mytest/build
+
+# creating a new public environment variable
+ENV DRIVE_APP_DIR=dir
+# create a directory for it
+RUN mkdir -p $DRIVE_APP_DIR
+
+
+RUN cmake ../tests && make
+# Run tests 
+CMD ["./runTests"]

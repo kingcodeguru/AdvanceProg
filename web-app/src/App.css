@@ -1,0 +1,61 @@
+/* src/App.css */
+
+:root {
+  /* --- Light Mode (Extended) --- */
+  --bg-main: #f8fafd;        /* Light gray background */
+  --bg-primary: #ffffff;     /* White workspace */
+  --bg-form: #ffffff;        /* White card */
+  --bg-elevated: #ffffff;    
+  --bg-hover: #f1f3f4c2;  
+  --bg-button-hover: #dee1e1e8;     
+  
+  --text-main: #202124;      
+  --text-secondary: #5f6368; 
+  --text-disabled: #9aa0a6;  
+  
+  --border-subtle: #dadce0;  
+  --active-blue: #c2e7ff;    
+  --brand-blue: #1a73e8;
+
+  --bg-box: #f0f4f9;
+  --bg-box-hover: #e0e2e6;
+
+  --bg-page-text-editor: #ffffff;
+
+  --top-image-viewer: #e4e3e3;
+}
+
+[data-theme='dark'] {
+  /* --- Even Lighter "Slate" Dark Mode --- */
+  --bg-main: #2d2f31;        /* Mid-tone Slate background */
+  --bg-primary: #37393b;     /* Slightly lighter workspace */
+  --bg-form: #3c3e42;        /* Form card background */
+  --bg-elevated: #46484c;    /* Elevated surfaces like dropdowns */
+  --bg-hover: #505257;       /* Very clear hover effect */
+  --bg-button-hover: #6c6d70; 
+  
+  --text-main: #f1f3f4;      /* Near-white text for clarity */
+  --text-secondary: #dfe1e5; /* Very light gray for secondary text */
+  --text-disabled: #9aa0a6;  
+  
+  --border-subtle: #5f6368;  /* Defined but soft borders */
+  --active-blue: #5d7aad;    /* Softer navy-blue selection */
+  --brand-blue: #c7d0e0;     /* Bright pastel blue for links */;
+
+  --bg-box: #474747;
+  --bg-box-hover: #818181;
+
+  --bg-page-text-editor: #bcbcc5;
+
+  --top-image-viewer: #5e5e5e;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main); 
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

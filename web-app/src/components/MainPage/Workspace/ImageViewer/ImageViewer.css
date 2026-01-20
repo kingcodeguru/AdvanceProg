@@ -1,0 +1,97 @@
+.image-viewer-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    background-color: var(--bg-main); /* Dark background like Drive */
+    color: white;
+    overflow: hidden; /* Prevent page scroll bars */
+}
+
+.viewer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pushes title to left and tools to right */
+    padding: 10px 20px;
+    background-color: var(--top-image-viewer); /* Slightly lighter gray for toolbar */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    z-index: 10;
+}
+
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.back-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%; /* Round button */
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+.viewer-title {
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    color: var(--text-main);
+}
+
+.image-display-area {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    overflow: hidden; /* We handle overflow via zoom, not scrollbars usually */
+    position: relative;
+}
+
+.displayed-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    
+    /* Smooth transition when zooming or rotating */
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.loading-text, .error-text {
+    font-size: 18px;
+    color: #9aa0a6;
+}

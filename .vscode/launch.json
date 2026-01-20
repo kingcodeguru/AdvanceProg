@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "App",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/web-app",
+            "sourceMaps": true
+        },
+        {
+        "type": "node",
+        "request": "launch",
+        "name": "Web Server",
+        "program": "${workspaceFolder}/src/Web_Server/app.js",
+        "cwd": "${workspaceFolder}/src/Web_Server",
+        "env": {
+            "WEB_PORT": "8080",
+            "FS_IP": "127.0.0.1",
+            "FS_PORT": "2385",
+            "LEN_SIZE": "12"
+        },
+        "skipFiles": [
+            "<node_internals>/**"
+        ]
+        }
+    ]
+}

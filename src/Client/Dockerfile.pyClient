@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+
+COPY . /usr/src/PyClient
+
+WORKDIR /usr/src/PyClient
+
+RUN mkdir build
+WORKDIR /usr/src/PyClient/build
+RUN ls -r .. && cp ../src/Client/Client.py ./
