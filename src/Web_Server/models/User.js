@@ -6,7 +6,8 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     creation_date: { type: Date, default: Date.now },
     avatar: { type: String },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    starred_files: [{ type: String, ref: 'FileDir' }, { default: [] }]
 });
 
 module.exports = mongoose.model('User', UserSchema);

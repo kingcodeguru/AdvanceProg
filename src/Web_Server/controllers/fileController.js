@@ -53,7 +53,7 @@ const postFile = async (req, res) => {
 
     try {
         const filedir = { name, parent_id, is_file, type };
-        vp.validateFileDir(filedir);
+        await vp.validateFileDir(filedir);
         const fid = await postFileModel(uid, filedir, content);
         return res.status(CODES.CREATED).location(`/api/files/${fid}`).end();
     } catch (error) {
@@ -149,7 +149,7 @@ const postPermissionById = async (req, res) => {
         const userToPromote = getUidByEmail(email);
         const permission = { uid: userToPromote, role, fid }; // fid injected safely here
         // check if the permission json have valid structure and data
-        vp.validatePermission(permission);
+        await vp.validatePermission(permission);
         const pid = await postPermissionByIdModel(uid, permission);
         const userDetails = getUser(userToPromote);
         return res.status(CODES.CREATED)

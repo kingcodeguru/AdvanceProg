@@ -28,19 +28,19 @@ const { getSingleFile,
  * 3. parent dir's name
  * @param {File} file 
  */
-function additionalFields(file, uid) {
-    const user = getSingleUser(uid);
+async function additionalFields(file, uid) {
+    const user = await getSingleUser(uid);
     file.starred = user.starred_files.includes(file.fid);
 
-    let l_perm = db.GetPermissionsAll(file.fid);
+    let l_perm = await db.GetPermissionsAll(file.fid);
     l_perm = l_perm.filter(perm => perm.role === ROLES.owner);
-    const owner = getSingleUser(l_perm[0].uid);
+    const owner = await getSingleUser(l_perm[0].uid);
 
     file.owner_avatar = owner.avatar;
     file.owner_name = owner.name;
     file.owner_email = owner.email;
 
-    file.location = file.parent_id ? getSingleFile(file.parent_id).name : "My Drive";
+    file.location = file.parent_id ? (await getSingleFile(file.parent_id)).name : "My Drive";
 
     return file;
 }
@@ -82,7 +82,7 @@ function getVisibleText(html) {
  */
 async function getMatchingFiles(uid, query) {
     query = query.toLowerCase();
-    getSingleUser(uid); // check if user exists
+    await getSingleUser(uid); // check if user exists
     // search is non-case-sensitive
 
     // Create a set to avoid duplicates
@@ -91,12 +91,12 @@ async function getMatchingFiles(uid, query) {
     // Search Files by name
 
     // Search for files that contains the query in their names
-    const files = db.SearchFilesByName(uid, query);
+    const files = await db.SearchFilesByName(uid, query);
     for (const file of files) {
         fileFidSet.add(file.fid);
     }
     // Search for files that contains the query in their content
-    const getFilesOfUser = db.GetAllFileDirs(uid);
+    const getFilesOfUser = await db.GetAllFileDirs(uid);
     for (const file of getFilesOfUser) {
         if (!file.is_file) {
             // for directories, continue
@@ -119,7 +119,7 @@ async function getMatchingFiles(uid, query) {
 
     const filesToReturn = [];
     for (const fid of fileFidSet) {
-        filesToReturn.push(getSingleFile(fid));
+        filesToReturn.push(await getSingleFile(fid));
     }
     
     return addFieldsForAll(filesToReturn, uid);
@@ -132,9 +132,9 @@ async function getMatchingFiles(uid, query) {
 
 const queryToFilter = {
     "all": (uid, file) => file.trashed === false,
-    "my-drive": (uid, file) => getRole(uid, file.fid) === ROLES.owner && file.trashed === false && file.parent_id === null,
-    "starred": (uid, file) => getSingleUser(uid).starred_files.includes(file.fid) && file.trashed === false,
-    "shared-with-me": (uid, file) => getRole(uid, file.fid) !== ROLES.owner && file.trashed === false,
+    "my-drive": async (uid, file) => await getRole(uid, file.fid) === ROLES.owner && file.trashed === false && file.parent_id === null,
+    "starred": async (uid, file) => await getSingleUser(uid).starred_files.includes(file.fid) && file.trashed === false,
+    "shared-with-me": async (uid, file) => await getRole(uid, file.fid) !== ROLES.owner && file.trashed === false,
     "bin": (uid, file) => file.trashed === true,
     "recent": (uid, file) => file.last_modified >= Date.now() - 7 * 24 * 60 * 60 * 1000
 };
@@ -146,7 +146,7 @@ const queryToFilter = {
  * @returns {File[]}
  */
 async function getAllFiles(uid, q) {
-    getSingleUser(uid); // check if user exists
+    await getSingleUser(uid); // check if user exists
     if (q === undefined) {
         q = "all";
     }
@@ -168,8 +168,8 @@ async function getAllFiles(uid, q) {
  * @throws {Error} when cannot create the file
  */
 async function postFile(uid, filedir, content) {
-    getSingleUser(uid);                                  // check if user exists
-    vv.validateFileDir(filedir);                         // check if filedir is valid structure
+    await getSingleUser(uid);                                  // check if user exists
+    await vv.validateFileDir(filedir);                         // check if filedir is valid structure
 
     const fid = idg.generateId(); // generate id for file
     const pid = idg.generateId(); // generate id for permission
@@ -193,8 +193,8 @@ async function postFile(uid, filedir, content) {
     }
     
     try {
-        db.PostFileDir(filedir);
-        db.PostPermission(perm);
+        await db.PostFileDir(filedir);
+        await db.PostPermission(perm);
     } catch (error) {
         throw new HttpError(STATUSCODE.CONFLICT);
     }
@@ -209,10 +209,10 @@ async function postFile(uid, filedir, content) {
  * @throws {Error} when cannot find the file
  */
 async function getFileById(uid, fid) {
-    getSingleUser(uid);                  // check if user exists
-    const filedir = getSingleFile(fid);  // check if file exists
+    await getSingleUser(uid);                  // check if user exists
+    const filedir = await getSingleFile(fid);  // check if file exists
     // Receive list of premissions
-    const role = getRole(uid, fid);
+    const role = await getRole(uid, fid);
     if (!ROLES.can_view(role)) {
         // the user have no sufficient permissions
         throw new HttpError(STATUSCODE.FORBIDDEN);
@@ -228,7 +228,7 @@ async function getFileById(uid, fid) {
             return filedir;
         } else {
             // add subfiles and subdirectories to the field that is the sub filedirs of a directory
-            filedir.sub_filedirs = addFieldsForAll(db.GetSubFileDirs(fid), uid);
+            filedir.sub_filedirs = addFieldsForAll(await db.GetSubFileDirs(fid), uid);
             return filedir;
         }
     }
@@ -243,23 +243,23 @@ async function getFileById(uid, fid) {
  */
 async function patchFileById(uid, fid, file, content) {
     // check if filedir is valid structure
-    vv.validateFileDir(file, is_patch=true);
+    await vv.validateFileDir(file, is_patch=true);
 
-    getSingleUser(uid);                 // check if user exists
-    const filedir = getSingleFile(fid); // check if file exists
+    await getSingleUser(uid);                 // check if user exists
+    const filedir = await getSingleFile(fid); // check if file exists
 
     // check if the user is authorized to change the file:
 
     // 1. check src dir
     if (filedir.parent_id !== null) {
-        const parent_role = getRole(uid, filedir.parent_id);
+        const parent_role = await getRole(uid, filedir.parent_id);
         if (!ROLES.can_edit(parent_role)) {
             // the user have no sufficient permissions
             throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: src directory = " + file.parent_dir);
         }
     }
     // 2. check file itself
-    const file_role = getRole(uid, fid);
+    const file_role = await getRole(uid, fid);
     if (!ROLES.can_edit(file_role)) {
         // the user have no sufficient permissions
         throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: file = " + fid);
@@ -268,7 +268,7 @@ async function patchFileById(uid, fid, file, content) {
     // 3. check dst dir
     if (file.parent_dir !== undefined && file.parent_dir !== null) {
         // trying to change parent dir to something that is not the main directory
-        const new_parent_role = getRole(uid, file.parent_dir);
+        const new_parent_role = await getRole(uid, file.parent_dir);
         if (!ROLES.can_edit(new_parent_role)) {
             // the user have no sufficient permissions
             throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: dst directory = " + file.parent_dir);
@@ -283,11 +283,11 @@ async function patchFileById(uid, fid, file, content) {
             throw new HttpError(response.status_code);
         }
     }
-    const old_file = getSingleFile(fid);
+    const old_file = await getSingleFile(fid);
     // trying to delete directory (move to trash) - check if contain sub files
     if (!old_file.is_file && file.trashed === true) {
         // check if the dir has sub files and directories
-        const sub_filedirs = db.GetSubFileDirs(fid);
+        const sub_filedirs = await db.GetSubFileDirs(fid);
         if (sub_filedirs.length > 0) {
             throw new HttpError(STATUSCODE.BAD_REQUEST, "cannot delete/trash directory with sub files and directories");
         }
@@ -295,7 +295,7 @@ async function patchFileById(uid, fid, file, content) {
     file.last_modified = Date.now();
     const updated_file = {...old_file, ...file};
     // Update the file with the new data
-    db.PatchFileDir(updated_file);
+    await db.PatchFileDir(updated_file);
 }
 
 /**
@@ -304,18 +304,18 @@ async function patchFileById(uid, fid, file, content) {
  * @param {string} fid
  */
 async function deleteFileById(uid, fid) {
-    getSingleUser(uid);                 // check if user exists
-    const filedir = getSingleFile(fid); // check if file exists
+    await getSingleUser(uid);                 // check if user exists
+    const filedir = await getSingleFile(fid); // check if file exists
     // check if the user is authorized to delete the file
-    const role = getRole(uid, fid);
+    const role = await getRole(uid, fid);
     // the user have access to the file and can erase it from his owm, maybe to others too.
     if (ROLES.can_edit(role)) {
         // an editor is deleting the file - delete all permissions and then the file
         // Get file json
         // Delete all permissions
-        const file_permissions = db.GetPermissionsAll(fid);
+        const file_permissions = await db.GetPermissionsAll(fid);
         for (const pid in file_permissions) {
-            db.DeletePermission(pid);
+            await db.DeletePermission(pid);
         }
         // delete file from file server (if it is a file and not directory)
         if (filedir.is_file) {
@@ -326,17 +326,17 @@ async function deleteFileById(uid, fid) {
             }
         } else {
             // check if the dir has sub files and directories
-            const sub_filedirs = db.GetSubFileDirs(fid);
+            const sub_filedirs = await db.GetSubFileDirs(fid);
             if (sub_filedirs.length > 0) {
                 throw new HttpError(STATUSCODE.BAD_REQUEST, "cannot delete directory with sub files and directories");
             }
         }
         // delete file from database
-        db.DeleteFileDir(fid);
+        await db.DeleteFileDir(fid);
     } else {
         // non-editor user is deleting the file - delete the permission to it
         // delete permission
-        db.DeletePermission(role.pid);
+        await db.DeletePermission(role.pid);
     }
 }
 
@@ -348,13 +348,13 @@ async function deleteFileById(uid, fid) {
  * @throws {Error} when cannot find the file
  */
 async function getPermissionById(uid, fid) {
-    const role = getRole(uid, fid);
+    const role = await getRole(uid, fid);
     if (!ROLES.can_view(role)) {
         // the user have no sufficient permissions
         throw new HttpError(STATUSCODE.FORBIDDEN, `user ${uid} cannot access the file/dir ${fid}`);
     } else {
         // the user have sufficient permissions
-        return db.GetPermissionsAll(fid);
+        return await db.GetPermissionsAll(fid);
     }
 }
 
@@ -365,17 +365,17 @@ async function getPermissionById(uid, fid) {
  */
 async function postPermissionById(uid, permission) {
     // check if permission is valid
-    vv.validatePermission(permission);
-    getSingleUser(uid);               // check if user exists
-    getSingleFile(permission.fid);
-    const role = getRole(uid, permission.fid);
+    await vv.validatePermission(permission);
+    await getSingleUser(uid);               // check if user exists
+    await getSingleFile(permission.fid);
+    const role = await getRole(uid, permission.fid);
     if (!ROLES.can_change_permissions(role)) {
         // the user have no sufficient permissions
         throw new HttpError(STATUSCODE.FORBIDDE, `user ${uid} cannot change the permissions of the file/dir ${permission.fid}`);
     } else {
         // check if permissions exists:
         // Receive list of premissions
-        const list_premissions = db.GetPermissions(permission.uid, permission.fid);
+        const list_premissions = await db.GetPermissions(permission.uid, permission.fid);
         if (list_premissions.length == 1) {
             throw new HttpError(STATUSCODE.CONFLICT, "permission already exists");
         } else if (list_premissions.length > 1) {
@@ -386,7 +386,7 @@ async function postPermissionById(uid, permission) {
         const pid = idg.generateId(); // new premission id
         permission.pid = pid;
         try {
-            db.PostPermission(permission);
+            await db.PostPermission(permission);
             return pid;
         } catch (error) {
             throw new HttpError(STATUSCODE.CONFLICT, "pid already exists");
@@ -403,18 +403,18 @@ async function postPermissionById(uid, permission) {
  */
 async function patchPermissionByIdAndPid(uid, pid, permission) {
     // check if permission is valid
-    vv.validatePermission(permission, is_patch=true);
-    getSingleUser(uid);               // check if user exists
+    await vv.validatePermission(permission, is_patch=true);
+    await getSingleUser(uid);               // check if user exists
 
 
-    const old_permission = getSinglePermission(pid);
+    const old_permission = await getSinglePermission(pid);
 
     //check if pid is the permission for uid and permission.fid
     if (old_permission.uid != permission.uid || old_permission.fid != permission.fid) {
         throw new HttpError(STATUSCODE.NOT_FOUND, `couldn't find permission ${pid} for user ${uid} and file/dir ${permission.fid}`);
     }
 
-    const role = getRole(uid, permission.fid);
+    const role = await getRole(uid, permission.fid);
     if (!ROLES.can_change_permissions(role)) {
         throw new HttpError(STATUSCODE.FORBIDDEN, `user ${uid} cannot change the permissions of the file/dir ${permission.fid}`);
     }
@@ -431,7 +431,7 @@ async function patchPermissionByIdAndPid(uid, pid, permission) {
 
     // set permissions id to the given one
     permission.pid = pid;
-    db.PatchPermission(permission);
+    await db.PatchPermission(permission);
 }
 
 /**
@@ -443,14 +443,14 @@ async function patchPermissionByIdAndPid(uid, pid, permission) {
  */
 async function deletePermissionByIdAndPid(uid, fid, pid) {
     
-    const permission = getSinglePermission(pid);
+    const permission = await getSinglePermission(pid);
 
     //check if pid is the permission for uid and permission.fid
     if (permission.fid != fid) {
         throw new HttpError(STATUSCODE.NOT_FOUND, `couldn't find permission ${pid} for file/dir ${permission.fid}`);
     }
     
-    const role = getRole(uid, fid);
+    const role = await getRole(uid, fid);
     if (!ROLES.can_change_permissions(role)) {
         throw new HttpError(STATUSCODE.FORBIDDEN);
     }
@@ -460,7 +460,7 @@ async function deletePermissionByIdAndPid(uid, fid, pid) {
         throw new HttpError(STATUSCODE.FORBIDDEN, "cannot delete owner");
     }
 
-    db.DeletePermission(pid);
+    await db.DeletePermission(pid);
 }
 
 async function patchStarred(uid, fid, starred) {
@@ -470,8 +470,8 @@ async function patchStarred(uid, fid, starred) {
     if (typeof starred !== 'boolean') {
         throw new HttpError(STATUSCODE.BAD_REQUEST, "starred must be a boolean");
     }
-    const user = getSingleUser(uid);
-    getRole(uid, fid); // check that the user has access to this file
+    const user = await getSingleUser(uid);
+    await getRole(uid, fid); // check that the user has access to this file
 
     if (starred) {
         if (!user.starred_files.includes(fid)) {
@@ -483,7 +483,7 @@ async function patchStarred(uid, fid, starred) {
         user.starred_files = user.starred_files.filter(id => id !== fid);
     }
     try {
-        db.PatchUser(uid, user);
+        await db.PatchUser(uid, user);
     } catch (error) {
         throw new HttpError(STATUSCODE.INTERNAL_SERVER_ERROR, "couldn't perform action");
     }

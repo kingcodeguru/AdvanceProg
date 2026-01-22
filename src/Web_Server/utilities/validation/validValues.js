@@ -12,7 +12,7 @@ const { getSingleFile, getSingleUser, getSinglePermission, getRole } = require('
  * user.email: must be a valid email address.
  * @param {User} user 
  */
-function validateUser(user) {
+async function validateUser(user) {
     // check name
     if (user.name !== undefined) {
         if (typeof user.name !== 'string') {throw new HttpError(STATUSCODE.BAD_REQUEST, "name isn't string");}
@@ -53,15 +53,15 @@ function validateUser(user) {
  * filedir.is_file: boolean
  * @param {User} user 
  */
-function validateFileDir(filedir, is_patch=false) {
+async function validateFileDir(filedir, is_patch=false) {
     if (is_patch) {
-        validateFileDirPatch(filedir);
+        await validateFileDirPatch(filedir);
     } else {
-        validateFileDirPost(filedir);
+        await validateFileDirPost(filedir);
     }
 }
 
-function validateFileDirPatch(filedir) {
+async function validateFileDirPatch(filedir) {
     // check name
     if (filedir.name !== undefined) {
         if (typeof filedir.name !== 'string') {throw new HttpError(STATUSCODE.BAD_REQUEST, "name isn't string");}
@@ -83,7 +83,7 @@ function validateFileDirPatch(filedir) {
     }
     if (filedir.parent_id !== undefined && filedir.parent_id !== null) {
         const new_parent_id = filedir.parent_id;
-        const new_parent = getSingleFile(new_parent_id);
+        const new_parent = await getSingleFile(new_parent_id);
         if (new_parent.is_file) {
             // new parent_id must be existing directory
             throw new HttpError(STATUSCODE.BAD_REQUEST, "new parent_id must be directory");
@@ -96,7 +96,7 @@ function validateFileDirPatch(filedir) {
 
 const possible_types = ['text', 'image', 'directory'];
 
-function validateFileDirPost(filedir) {
+async function validateFileDirPost(filedir) {
     // types
     if (typeof filedir.name !== 'string') {throw new HttpError(STATUSCODE.BAD_REQUEST, "name isn't string");}
     if (typeof filedir.is_file !== 'boolean') {throw new HttpError(STATUSCODE.BAD_REQUEST, "is_file isn't boolean");}
@@ -112,7 +112,7 @@ function validateFileDirPost(filedir) {
     // parent exists
     if (filedir.parent_id !== null) {
         // parent_id is not null - check it
-        const dir = getSingleFile(filedir.parent_id);
+        const dir = await getSingleFile(filedir.parent_id);
         if (dir.is_file) {
             throw new HttpError(STATUSCODE.BAD_REQUEST, "parent_id isn't a directory");
         }
@@ -127,24 +127,24 @@ function validateFileDirPost(filedir) {
  * permission.role: 1 number between 1 and the number of roles
  * permission.uid: id of an existing user
  */
-function validatePermission(permission, is_patch=false) {
+async function validatePermission(permission, is_patch=false) {
     if (is_patch) {
-        validatePermissionPatch(permission);
+        await validatePermissionPatch(permission);
     } else {
-        validatePermissionPost(permission);
+        await validatePermissionPost(permission);
     }
 }
 
-function validatePermissionPost(permission) {
+async function validatePermissionPost(permission) {
     // check fid
     if (typeof permission.fid !== 'string') {throw new HttpError(STATUSCODE.BAD_REQUEST, "fid isn't string");}
     // check for the fileidr - if such file/directory exist
-    getSingleFile(permission.fid); // check if file exsits
+    await getSingleFile(permission.fid); // check if file exsits
 
     // check uid
     if (typeof permission.uid !== 'string') {throw new HttpError(STATUSCODE.BAD_REQUEST, "uid isn't string");}
     // check for the user - if such user exist
-    getSingleUser(permission.uid); // check if user exsits
+    await getSingleUser(permission.uid); // check if user exsits
 
     // check role
     if (!Number.isInteger(permission.role)) {throw new HttpError(STATUSCODE.BAD_REQUEST, "role isn't integer");}
@@ -153,7 +153,7 @@ function validatePermissionPost(permission) {
         throw new HttpError(STATUSCODE.BAD_REQUEST, `role isn't between ${ROLES.MIN_ROLE} and ${ROLES.MAX_ROLE}.`);
     }
 }
-function validatePermissionPatch(permission) {
+async function validatePermissionPatch(permission) {
     // fid
     if (permission.fid === undefined) {
         // cannot change fid!

@@ -18,7 +18,7 @@ const postUser = async (req, res) => {
 
     try {
         const user = { name, password, email, avatar };
-        vp.validateUser(user);
+        await vp.validateUser(user);
         // Create user in model, ignore uid
         await postUserModel(user);
         // Return success - nothing to return

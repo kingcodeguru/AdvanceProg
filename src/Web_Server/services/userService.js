@@ -17,13 +17,13 @@ const { getSingleUser } = require('../utilities/database/getSingle');
  * @returns {string}
  * @throws {Error} when cannot create the user
  */
-function postUser(user) {
+async function postUser(user) {
     // check if user is valid
-    vv.validateUser(user);
+    await vv.validateUser(user);
 
     user.uid = idg.generateId();
     try {
-        db.PostUser(user);
+        await db.PostUser(user);
     } catch (error) {
         throw new HttpError(STATUSCODE.CONFLICT, "user with this email already exists");
     }
@@ -36,8 +36,8 @@ function postUser(user) {
  * @returns {User}
  * @throws {Error} when cannot find the user
  */
-function getUser(uid) {
-    return getSingleUser(uid);
+async function getUser(uid) {
+    return await getSingleUser(uid);
 }
 
 /**
@@ -46,8 +46,8 @@ function getUser(uid) {
  * @param {password: string} password 
  * @returns {uid}
  */
-function postTokens(email, password) {
-    let list_users = db.LogIn(email, password);
+async function postTokens(email, password) {
+    let list_users = await db.LogIn(email, password);
     if (list_users.length == 0) {
         throw new HttpError(STATUSCODE.UNAUTHORIZED, "wrong name or password");
     } else if (list_users.length > 1) {
@@ -63,8 +63,8 @@ function postTokens(email, password) {
  * @returns {string} uid
  * @throws {Error} when cannot find the user
  */
-function getUidByEmail(email) {
-    let list_users = db.GetUserByEmail(email);
+async function getUidByEmail(email) {
+    let list_users = await db.GetUserByEmail(email);
     if (list_users.length === 0) {
         throw new HttpError(STATUSCODE.NOT_FOUND, "User not found");
     } else if (list_users.length > 1) {

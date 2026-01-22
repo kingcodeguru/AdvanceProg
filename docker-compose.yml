@@ -1,5 +1,6 @@
 volumes:
   drive_volume:
+  mongo_volume:
 
 services:
   # --------------------------------------------------------------------------
@@ -71,11 +72,12 @@ services:
       - WEB_PORT=8080
       - FS_IP=file_server
       - FS_PORT=2385
+      - DB_CONN=mongodb://mongo_docker:27017/DriveDB
       - LEN_SIZE=12
     command: ["node", "src/Web_Server/app.js"]
     
   # --------------------------------------------------------------------------
-  # sixth executable: web server
+  # sixth executable: web app
   # --------------------------------------------------------------------------
   web_app:
     build:
@@ -89,3 +91,13 @@ services:
       - WS_IP=web_server
       - WS_PORT=8080
     command: ["npm", "start"]
+  # --------------------------------------------------------------------------
+  # seventh executable: mongo database
+  # --------------------------------------------------------------------------
+  mongo_db:
+    image: mongo:latest
+    container_name: drive-mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_volume:/data/db

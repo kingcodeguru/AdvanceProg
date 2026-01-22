@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+const FileDirSchema = new mongoose.Schema({
     fid: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     is_file: { type: Boolean, required: true },
@@ -8,4 +8,4 @@ const UserSchema = new mongoose.Schema({
     parent_id: { type: String, default: null }
 });
 
-module.exports = mongoose.model('File', UserSchema);
+module.exports = mongoose.model('FileDir', FileDirSchema);
