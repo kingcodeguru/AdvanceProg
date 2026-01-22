@@ -1,4 +1,4 @@
-const Model = require('../models/fileModel');
+const Model = require('../services/fileService');
 const { HttpError, handleError } = require('../utilities/errors/HttpError');
 const token2uid = require('../utilities/tokens/token2uid'); // Added
 

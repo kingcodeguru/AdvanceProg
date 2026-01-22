@@ -1,4 +1,4 @@
-const { postUser: postUserModel, getUser: getUserModel } = require('../models/userModel');
+const { postUser: postUserModel, getUser: getUserModel } = require('../services/userService');
 const { HttpError, handleError } = require('../utilities/errors/HttpError');
 const vp = require('../utilities/validation/validParameters');             // Valid check for parameters
 const token2uid = require('../utilities/tokens/token2uid');                            // converts token to uid

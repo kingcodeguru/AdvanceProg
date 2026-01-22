@@ -9,8 +9,8 @@ const {
     patchPermissionByIdAndPid: patchPermissionByIdAndPidModel,
     deletePermissionByIdAndPid: deletePermissionByIdAndPidModel,
     patchStarred: patchStarredModel
-} = require('../models/fileModel');
-const { getUidByEmail, getUser } = require('../models/userModel');
+} = require('../services/fileService');
+const { getUidByEmail, getUser } = require('../services/userService');
 const { HttpError, handleError } = require('../utilities/errors/HttpError');
 const vp = require('../utilities/validation/validParameters');
 const token2uid = require('../utilities/tokens/token2uid');
