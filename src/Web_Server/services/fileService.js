@@ -49,13 +49,15 @@ async function additionalFields(file, uid) {
  * perform additionalFields on each file
  * it can also filter files that are trashed - if flag is set to true
  */
-function addFieldsForAll(files, uid, filterTrashed = true) {
-    return files.map(file => {
+async function addFieldsForAll(files, uid, filterTrashed = true) {
+    const filtered = [];
+    for (const file of files) {
         if (filterTrashed && file.trashed) {
-            return null;
+            continue;
         }
-        return additionalFields(file, uid);
-    }).filter(file => file !== null);
+        filtered.push(await additionalFields(file, uid));
+    }
+    return filtered;
 }
 
 //###############################
@@ -121,8 +123,8 @@ async function getMatchingFiles(uid, query) {
     for (const fid of fileFidSet) {
         filesToReturn.push(await getSingleFile(fid));
     }
-    
-    return addFieldsForAll(filesToReturn, uid);
+
+    return await addFieldsForAll(filesToReturn, uid);
 }
 
 //###############################
@@ -131,12 +133,12 @@ async function getMatchingFiles(uid, query) {
 
 
 const queryToFilter = {
-    "all": (uid, file) => file.trashed === false,
-    "my-drive": async (uid, file) => await getRole(uid, file.fid) === ROLES.owner && file.trashed === false && file.parent_id === null,
-    "starred": async (uid, file) => await getSingleUser(uid).starred_files.includes(file.fid) && file.trashed === false,
-    "shared-with-me": async (uid, file) => await getRole(uid, file.fid) !== ROLES.owner && file.trashed === false,
-    "bin": (uid, file) => file.trashed === true,
-    "recent": (uid, file) => file.last_modified >= Date.now() - 7 * 24 * 60 * 60 * 1000
+    "all": async (uid, file) => file.trashed === false,
+    "my-drive": async (uid, file) => (await getRole(uid, file.fid)) === ROLES.owner && file.trashed === false && file.parent_id === null,
+    "starred": async (uid, file) => (await getSingleUser(uid)).starred_files.includes(file.fid) && file.trashed === false,
+    "shared-with-me": async (uid, file) => (await getRole(uid, file.fid)) !== ROLES.owner && file.trashed === false,
+    "bin": async (uid, file) => file.trashed === true,
+    "recent": async (uid, file) => file.last_modified >= Date.now() - 7 * 24 * 60 * 60 * 1000
 };
 
 /**
@@ -155,9 +157,16 @@ async function getAllFiles(uid, q) {
         throw new HttpError(STATUSCODE.BAD_REQUEST, `Invalid query. query ${q} is not supported. must be one of: ${Object.keys(queryToFilter).join(", ")}`);
     }
     const files = await db.GetAllFileDirs(uid);
-    const filtered = files.filter(file => queryToFilter[q](uid, file));
-    return addFieldsForAll(filtered, uid, q !== "bin");
 
+    const filtered = [];
+    for (const file of files) {
+        const isMatch = await queryToFilter[q](uid, file);
+        if (isMatch) {
+            filtered.push(file);
+        }
+    }
+
+    return await addFieldsForAll(filtered, uid, q !== "bin");
 }
 
 /**
@@ -228,7 +237,7 @@ async function getFileById(uid, fid) {
             return filedir;
         } else {
             // add subfiles and subdirectories to the field that is the sub filedirs of a directory
-            filedir.sub_filedirs = addFieldsForAll(await db.GetSubFileDirs(fid), uid);
+            filedir.sub_filedirs = await addFieldsForAll(await db.GetSubFileDirs(fid), uid);
             return filedir;
         }
     }
@@ -249,31 +258,33 @@ async function patchFileById(uid, fid, file, content) {
     const filedir = await getSingleFile(fid); // check if file exists
 
     // check if the user is authorized to change the file:
-
-    // 1. check src dir
-    if (filedir.parent_id !== null) {
-        const parent_role = await getRole(uid, filedir.parent_id);
-        if (!ROLES.can_edit(parent_role)) {
-            // the user have no sufficient permissions
-            throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: src directory = " + file.parent_dir);
-        }
-    }
-    // 2. check file itself
     const file_role = await getRole(uid, fid);
     if (!ROLES.can_edit(file_role)) {
         // the user have no sufficient permissions
         throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: file = " + fid);
     }
-
-    // 3. check dst dir
-    if (file.parent_dir !== undefined && file.parent_dir !== null) {
-        // trying to change parent dir to something that is not the main directory
-        const new_parent_role = await getRole(uid, file.parent_dir);
-        if (!ROLES.can_edit(new_parent_role)) {
-            // the user have no sufficient permissions
-            throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: dst directory = " + file.parent_dir);
+    
+    // checking if the user wants to change file's parent dir.
+    if (file.parent_dir !== undefined) {
+        // 1. check src dir
+        if (filedir.parent_id !== null) {
+            const parent_role = await getRole(uid, filedir.parent_id);
+            if (!ROLES.can_edit(parent_role)) {
+                // the user have no sufficient permissions
+                throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: src directory = " + file.parent_dir);
+            }
+        }
+        // 2. check dst dir
+        if (file.parent_dir !== undefined && file.parent_dir !== null) {
+            // trying to change parent dir to something that is not the main directory
+            const new_parent_role = await getRole(uid, file.parent_dir);
+            if (!ROLES.can_edit(new_parent_role)) {
+                // the user have no sufficient permissions
+                throw new HttpError(STATUSCODE.FORBIDDEN, "not enough permission in: dst directory = " + file.parent_dir);
+            }
         }
     }
+    
     // checked for authorazation, now patching the file
     // If filedir is file and there is change in content - update the content in the file server
     if (filedir.is_file && content !== undefined) {

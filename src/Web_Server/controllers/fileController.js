@@ -114,19 +114,20 @@ const getPermissionById = async (req, res) => {
     try {
         const permissions = await getPermissionByIdModel(uid, fid);
 
-        const enrichedPermissions = permissions.map(perm => {
+        const enrichedPermissions = [];
+
+        for (const perm of permissions) {
             try {
-                const user = getUser(perm.uid);
-                return {
+                const user = await getUser(perm.uid);
+                enrichedPermissions.push({
                     ...perm,
                     name: user.name,
                     email: user.email
-                };
+                });
             } catch (err) {
-                return perm; 
+                enrichedPermissions.push(perm);
             }
-        });
-
+        }
         return res.status(CODES.OK).json(enrichedPermissions);
     } catch (error) {
         return handleError(error, res);
@@ -146,12 +147,12 @@ const postPermissionById = async (req, res) => {
             return res.status(CODES.BAD_REQUEST).json({ error: 'Email is required' });
         } 
         // Create clean object
-        const userToPromote = getUidByEmail(email);
+        const userToPromote = await getUidByEmail(email);
         const permission = { uid: userToPromote, role, fid }; // fid injected safely here
         // check if the permission json have valid structure and data
         await vp.validatePermission(permission);
         const pid = await postPermissionByIdModel(uid, permission);
-        const userDetails = getUser(userToPromote);
+        const userDetails = await getUser(userToPromote);
         return res.status(CODES.CREATED)
             .location(`/api/files/${fid}/permissions/${pid}`)
             .json({ pid, 
