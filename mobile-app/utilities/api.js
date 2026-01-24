@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ⚠️ REPLACE WITH YOUR REAL PC IP (Run 'ipconfig')
+// ⚠️ REPLACE WITH YOUR REAL PC IP
 const API_IP = 'http://192.168.1.XX:8080';
 
 const getToken = async () => {
@@ -19,6 +19,8 @@ const getHeaders = async () => {
         'Authorization': `Bearer ${token}`
     };
 };
+
+// --- User & Basic File Ops ---
 
 export const getMyDetails = async () => {
     try {
@@ -48,6 +50,8 @@ export const getFileById = async (fileId) => {
     }
 };
 
+// --- File Content Editing (Original Function) ---
+
 export const patchFile = async (fileId, content) => {
     try {
         const headers = await getHeaders();
@@ -62,6 +66,8 @@ export const patchFile = async (fileId, content) => {
         throw error;
     }
 };
+
+// --- Role Checking (Original Function) ---
 
 export const getRole = async (fileId) => {
     try {
@@ -93,5 +99,71 @@ export const getRole = async (fileId) => {
     } catch (error) {
         console.error("API getRole Error:", error);
         return null;
+    }
+};
+
+// --- Permissions Management (New Functions) ---
+
+// 1. Get all users who have access to the file
+export const getFilePermissions = async (fileId) => {
+    try {
+        const headers = await getHeaders();
+        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions`, {
+            method: 'GET',
+            headers: headers
+        });
+        return response;
+    } catch (error) {
+        console.error("API getFilePermissions Error:", error);
+        throw error;
+    }
+};
+
+// 2. Share file with a new user (Add Permission)
+export const addPermission = async (fileId, email, role) => {
+    try {
+        const headers = await getHeaders();
+        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ email, role })
+        });
+        return response;
+    } catch (error) {
+        console.error("API addPermission Error:", error);
+        throw error;
+    }
+};
+
+// 3. Update an existing user's role
+export const updatePermission = async (fileId, uid, newRole) => {
+    try {
+        const headers = await getHeaders();
+        // Assuming REST path: /api/files/{id}/permissions/{uid}
+        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions/${uid}`, {
+            method: 'PATCH', // Or PUT
+            headers: headers,
+            body: JSON.stringify({ role: newRole })
+        });
+        return response;
+    } catch (error) {
+        console.error("API updatePermission Error:", error);
+        throw error;
+    }
+};
+
+// 4. Remove a user (Unshare) or Leave file
+export const removePermission = async (fileId, uid) => {
+    try {
+        const headers = await getHeaders();
+        // Assuming REST path: /api/files/{id}/permissions/{uid}
+        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions/${uid}`, {
+            method: 'DELETE',
+            headers: headers
+        });
+        return response;
+    } catch (error) {
+        console.error("API removePermission Error:", error);
+        throw error;
     }
 };
