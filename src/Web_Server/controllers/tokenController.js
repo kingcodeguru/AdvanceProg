@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { key } = require("../utilities/tokens/key.json"); 
-const { postTokens: postTokensModel } = require('../models/userModel');
+const { postTokens: postTokensModel } = require('../services/userService');
 const { HttpError, handleError } = require('../utilities/errors/HttpError');
 
 const CODES = {
