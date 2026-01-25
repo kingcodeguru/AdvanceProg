@@ -1,169 +1,266 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-// ⚠️ REPLACE WITH YOUR REAL PC IP
-const API_IP = 'http://192.168.1.XX:8080';
+const port = 8080;
+const WS_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const IP = `http://${WS_IP}:${port}`;
 
-const getToken = async () => {
-    try {
-        return await AsyncStorage.getItem('userToken');
-    } catch (e) {
-        console.error("Failed to get token", e);
-        return null;
-    }
-};
+console.log(`API IP: ${IP}`);
+const tokenName = 'userToken';
 
-const getHeaders = async () => {
+async function saveToken(token) {
+  try {
+    await AsyncStorage.setItem(tokenName, token);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function getToken() {
+  try {
+    return await AsyncStorage.getItem(tokenName);
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function postTokens(email, password) {
+  console.log('trying to post tokens');
+  const response = await fetch(`${IP}/api/tokens`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  console.log('successfully posted tokens');
+
+  const location = response.headers.get('Location');
+  if (location) {
+    await saveToken(location);
+  }
+  return response;
+}
+
+export async function getMyDetails() {
     const token = await getToken();
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-};
+    const response = await fetch(`${IP}/api/users/me`, {
+        method: 'GET',
+        headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+        }
+    });
 
-// --- User & Basic File Ops ---
+    return response;
+}
 
-export const getMyDetails = async () => {
+export async function postFiledir(payload) {
+  const token = await getToken();
+  const response = await fetch(`${IP}/api/files`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return response;
+}
+
+export async function getFilesBySearch(searchQuery) {
+  const token = await getToken();
+  const response = await fetch(`${IP}/api/search/${encodeURIComponent(searchQuery)}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return response;
+}
+
+export async function getFilesByCategory(category) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files?q=${category || 'home'}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    return response;
+}
+
+export async function getFilesByDirectory(directoryId) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(directoryId)}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    const data = await response.json();
+    if (data.sub_filedirs) {
+        // Preserving original logic of overriding .json()
+        response.json = async () => data.sub_filedirs;
+    }
+    return response;
+}
+
+export async function getFileById(fileId) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    return response;
+}
+
+export async function patchFile(fileId, data) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}`, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+
+    return response;
+}
+
+export async function setStar(fileId,isStarred) {
+    return await patchFile(fileId, { starred: isStarred });
+}
+
+
+export async function deleteFile(fileId) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    return response;
+}
+
+export async function postUser(userData) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/users`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+    });
+
+    return response;
+}
+
+export async function getRole(fileId) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${fileId}/permissions`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
     try {
-        const headers = await getHeaders();
-        const response = await fetch(`${API_IP}/api/users/me`, {
-            method: 'GET',
-            headers: headers
-        });
+        const permissions = await response.json();
+        const me = await (await getMyDetails()).json();
+        const uid = me.uid;
+        return permissions.filter(permission => permission.uid === uid)[0].role
+    } catch (error) {
         return response;
-    } catch (error) {
-        console.error("API getMyDetails Error:", error);
-        throw error;
     }
-};
+}
 
-export const getFileById = async (fileId) => {
-    try {
-        const headers = await getHeaders();
-        const response = await fetch(`${API_IP}/api/files/${encodeURIComponent(fileId)}`, {
-            method: 'GET',
-            headers: headers
-        });
-        return response;
-    } catch (error) {
-        console.error("API getFileById Error:", error);
-        throw error;
-    }
-};
+export async function getFilePermissions(fileId) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}/permissions`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response;
+}
 
-// --- File Content Editing (Original Function) ---
+export async function addFilePermission(fileId, email, role) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}/permissions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, role })
+    });
+    return response;
+}
 
-export const patchFile = async (fileId, content) => {
-    try {
-        const headers = await getHeaders();
-        const response = await fetch(`${API_IP}/api/files/${encodeURIComponent(fileId)}`, {
-            method: 'PATCH',
-            headers: headers,
-            body: JSON.stringify({ content: content })
-        });
-        return response;
-    } catch (error) {
-        console.error("API patchFile Error:", error);
-        throw error;
-    }
-};
+export async function updateFilePermission(fileId, pid, role, uidOfUser) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}/permissions/${pid}`, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role, uid: uidOfUser })
+    });
+    return response;
+}
 
-// --- Role Checking (Original Function) ---
+export async function deleteFilePermission(fileId, pid) {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}/permissions/${pid}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response;
+}
 
-export const getRole = async (fileId) => {
-    try {
-        const headers = await getHeaders();
-        
-        // 1. Get all permissions for this file
-        const permResponse = await fetch(`${API_IP}/api/files/${fileId}/permissions`, {
-            method: 'GET',
-            headers: headers
-        });
-        
-        if (!permResponse.ok) return null;
-        
-        const permissions = await permResponse.json();
+export async function getAllFiles() {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response;
+}
 
-        // 2. Get my own details to find my UID
-        const meResponse = await getMyDetails();
-        if (!meResponse.ok) return null;
-        
-        const meData = await meResponse.json();
-        const myUid = meData.uid;
-
-        // 3. Find my specific role in the permissions list
-        const myPermission = permissions.find(p => p.uid === myUid);
-        
-        // Return the role (or null if not found)
-        return myPermission ? myPermission.role : null;
-
-    } catch (error) {
-        console.error("API getRole Error:", error);
-        return null;
-    }
-};
-
-// --- Permissions Management (New Functions) ---
-
-// 1. Get all users who have access to the file
-export const getFilePermissions = async (fileId) => {
-    try {
-        const headers = await getHeaders();
-        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions`, {
-            method: 'GET',
-            headers: headers
-        });
-        return response;
-    } catch (error) {
-        console.error("API getFilePermissions Error:", error);
-        throw error;
-    }
-};
-
-// 2. Share file with a new user (Add Permission)
-export const addPermission = async (fileId, email, role) => {
-    try {
-        const headers = await getHeaders();
-        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ email, role })
-        });
-        return response;
-    } catch (error) {
-        console.error("API addPermission Error:", error);
-        throw error;
-    }
-};
-
-// 3. Update an existing user's role
-export const updatePermission = async (fileId, uid, newRole) => {
-    try {
-        const headers = await getHeaders();
-        // Assuming REST path: /api/files/{id}/permissions/{uid}
-        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions/${uid}`, {
-            method: 'PATCH', // Or PUT
-            headers: headers,
-            body: JSON.stringify({ role: newRole })
-        });
-        return response;
-    } catch (error) {
-        console.error("API updatePermission Error:", error);
-        throw error;
-    }
-};
-
-// 4. Remove a user (Unshare) or Leave file
-export const removePermission = async (fileId, uid) => {
-    try {
-        const headers = await getHeaders();
-        // Assuming REST path: /api/files/{id}/permissions/{uid}
-        const response = await fetch(`${API_IP}/api/files/${fileId}/permissions/${uid}`, {
-            method: 'DELETE',
-            headers: headers
-        });
-        return response;
-    } catch (error) {
-        console.error("API removePermission Error:", error);
-        throw error;
-    }
-};
+export async function getAllStaredFiles() {
+    const token = await getToken();
+    const response = await fetch(`${IP}/api/files?q=starred`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response;
+}
