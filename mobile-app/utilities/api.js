@@ -1,11 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
-const port = 8080;
-const WS_IP = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const port = process.env.WEB_PORT || 8080;
+const WS_IP = process.env.WS_IP || '192.168.7.27';
+
 const IP = `http://${WS_IP}:${port}`;
-
-console.log(`API IP: ${IP}`);
 const tokenName = 'userToken';
 
 async function saveToken(token) {
