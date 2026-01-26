@@ -11,7 +11,7 @@ mongoose.connect(DB_CONN);
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: '*',
   exposedHeaders: ['Location']
 }));
 
