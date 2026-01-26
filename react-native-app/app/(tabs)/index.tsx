@@ -1,57 +1,78 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, SafeAreaView } from 'react-native';
-// תוודאי שהנתיב הזה נכון לקומפוננטה שיצרת
-import MoveFileModal from '../../components/MoveFileModal'; 
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+// תוודאי שהנתיב נכון
+import FileActionModal from '@/components/FileActionModal'; 
 
-export default function TestMoveScreen() {
-  // 1. ה-State שמחזיק את המודל פתוח/סגור
-  const [isModalVisible, setModalVisible] = useState(false);
+export default function FileActionModalTest() {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [lastAction, setLastAction] = useState('None');
   
-  // 2. סטייט שרק מראה לנו על המסך אם הפעולה הצליחה
-  const [statusMessage, setStatusMessage] = useState('Waiting for user action...');
+  // משתנים לבדיקה - אפשר לשחק איתם
+  const [testFile, setTestFile] = useState({
+    fid: '123',
+    name: 'Vacation_Photos.zip',
+    type: 'directory', // תנסי לשנות ל: 'image' או 'text'
+    starred: true
+  });
 
-  // נתונים פיקטיביים של קובץ שאנחנו כאילו מזיזים
-  const testFile = {
-    id: '12345',
-    name: 'Vacation_Photos.zip'
+  const handleOpenModal = (type: string, name: string) => {
+    setTestFile({ ...testFile, type, name });
+    setModalVisible(true);
   };
 
-  // פונקציה שקורית כשהמודל מדווח שההעברה הצליחה
-  const handleSuccess = () => {
-    setStatusMessage('Success! File moved at ' + new Date().toLocaleTimeString());
-    setModalVisible(false); // סגירת המודל
+  const handleAction = (actionName: string) => {
+    console.log('Action selected:', actionName);
+    setLastAction(actionName);
+    // כאן המודל נסגר אוטומטית ע"י הקומפוננטה, אבל אנחנו צריכים לעדכן את ה-State שלנו
+    // ה-onClose ייקרא בכל מקרה
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         
-        <Text style={styles.title}>Move Modal Test</Text>
+        <Text style={styles.title}>בדיקת תפריט פעולות</Text>
+        <Text style={styles.subtitle}>לחץ על כפתור כדי לפתוח את התפריט</Text>
 
-        {/* קופסה שמציגה את פרטי הקובץ */}
-        <View style={styles.infoBox}>
-          <Text style={styles.label}>File to move:</Text>
-          <Text style={styles.fileName}>{testFile.name}</Text>
-          
-          <View style={styles.divider} />
-          
-          <Text style={styles.label}>Last Status:</Text>
-          <Text style={styles.status}>{statusMessage}</Text>
+        <View style={styles.statusBox}>
+          <Text style={styles.statusLabel}>Last Action:</Text>
+          <Text style={styles.statusValue}>{lastAction}</Text>
         </View>
 
-        {/* הכפתור שפותח את המודל */}
-        <Button 
-          title="Open Move Menu" 
-          onPress={() => setModalVisible(true)} 
-        />
+        {/* כפתור 1: בדיקת תיקייה */}
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => handleOpenModal('directory', 'My Projects')}
+        >
+          <Text style={styles.btnText}>Open as Folder</Text>
+        </TouchableOpacity>
+
+        {/* כפתור 2: בדיקת תמונה */}
+        <TouchableOpacity 
+          style={[styles.button, styles.btnBlue]} 
+          onPress={() => handleOpenModal('image', 'Sunset.png')}
+        >
+          <Text style={styles.btnText}>Open as Image</Text>
+        </TouchableOpacity>
+
+        {/* כפתור 3: בדיקת קובץ טקסט */}
+        <TouchableOpacity 
+          style={[styles.button, styles.btnGreen]} 
+          onPress={() => handleOpenModal('text', 'Resume.docx')}
+        >
+          <Text style={styles.btnText}>Open as Document</Text>
+        </TouchableOpacity>
 
         {/* המודל עצמו */}
-        <MoveFileModal
-          visible={isModalVisible}
-          fileId={testFile.id}
-          fileName={testFile.name}
+        <FileActionModal
+          visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          onMoveSuccess={handleSuccess}
+          onAction={handleAction}
+          fileID={testFile.fid}
+          fileName={testFile.name}
+          fileType={testFile.type}
+          isStarred={testFile.starred}
+          isTrashed={false}
         />
 
       </View>
@@ -62,7 +83,7 @@ export default function TestMoveScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F5F5',
   },
   content: {
     flex: 1,
@@ -73,36 +94,53 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
     marginBottom: 40,
-    color: '#202124',
   },
-  infoBox: {
+  statusBox: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
     width: '100%',
-    backgroundColor: '#f1f3f4',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 30,
     alignItems: 'center',
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
-  label: {
+  statusLabel: {
     fontSize: 14,
-    color: '#5F6368',
-    marginBottom: 4,
+    color: '#888',
+    marginBottom: 5,
   },
-  fileName: {
+  statusValue: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#1a73e8',
   },
-  divider: {
-    height: 1,
-    width: '100%',
-    backgroundColor: '#dadce0',
-    marginVertical: 15,
+  button: {
+    backgroundColor: '#5f6368',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+    marginBottom: 15,
+    elevation: 2,
   },
-  status: {
+  btnBlue: {
+    backgroundColor: '#1a73e8',
+  },
+  btnGreen: {
+    backgroundColor: '#1e8e3e',
+  },
+  btnText: {
+    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
-    color: '#188038', // ירוק
+    fontWeight: '600',
   },
 });
