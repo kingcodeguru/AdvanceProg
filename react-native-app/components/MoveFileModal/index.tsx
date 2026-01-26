@@ -8,17 +8,17 @@ import {
   TextInput, 
   ActivityIndicator, 
   SafeAreaView,
-  Image // הוספנו את Image
+  Image 
 } from 'react-native';
 import { styles } from './styles';
+// החזרנו את האימפורט של ה-API
 import { getFilesByDirectory, patchFile, getFilesBySearch, getFileById, getAllFiles } from '@/utilities/api'; 
 
-// --- משתני תמונות (תוסיפי כאן את ה-path שלך) ---
-// דוגמה לשימוש: const FOLDER_ICON = require('./assets/folder.png');
-const FOLDER_ICON = require('../../assets/dir_logo.png'); // הוספת תמונת תיקייה
-const BACK_ICON = require('../../assets/back_icon.png'); // הוספת תמונת חזור
-const SEARCH_ICON = require('../../assets/search_icon.png'); // הוספת תמונת חיפוש
-const CLOSE_ICON = require('../../assets/x_icon.png'); // ה-X הקטן
+// --- תמונות (לפי הנתיבים שנתת) ---
+const FOLDER_ICON = require('../../assets/images/dir_logo.png');
+const BACK_ICON = require('../../assets/images/back_icon.png');
+const SEARCH_ICON = require('../../assets/images/search_icon.png');
+const CLOSE_ICON = require('../../assets/images/x_icon.png');
 
 interface MoveFileModalProps {
   visible: boolean;
@@ -46,7 +46,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. אתחול - שאיבת מידע מהשרת (עם Fallback אם השרת למטה)
+  // 1. אתחול - קריאה לשרת + Fallback
   useEffect(() => {
     if (visible && fileId) {
       const init = async () => {
@@ -71,7 +71,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           setCurrentPath([{ fid: parentId, name: startName }]);
 
         } catch (e) {
-          // Fallback אם השרת למטה
+          // Fallback חשוב: אם השרת למטה, מציגים את התיקייה הראשית
           console.log("Server down or init failed -> Fallback to Root");
           setOriginParentId('root');
           setOriginParentName('My Drive');
@@ -86,7 +86,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     ? currentPath[currentPath.length - 1] 
     : { fid: 'root', name: 'My Drive' };
 
-  // 2. טעינת תיקיות
+  // 2. טעינת תיקיות מהשרת
   const loadFolders = useCallback(async () => {
     if (!visible) return;
     setLoading(true);
@@ -176,7 +176,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
-        {/* שימוש בתמונה במקום אייקון */}
         <Image source={FOLDER_ICON} style={styles.folderImage} />
       </View>
       <View style={styles.textContainer}>
@@ -195,7 +194,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-                  {/* תמונת חזור */}
                   <Image source={BACK_ICON} style={styles.backIconImage} />
                 </TouchableOpacity>
                 
@@ -214,7 +212,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={() => setIsSearchActive(true)} style={styles.iconButton}>
-                  {/* תמונת חיפוש */}
                   <Image source={SEARCH_ICON} style={styles.actionIconImage} />
                 </TouchableOpacity>
               </View>
@@ -223,7 +220,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             // Search Overlay
             <View style={styles.searchContainer}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
-                  {/* תמונת חזור בתוך חיפוש */}
                   <Image source={BACK_ICON} style={styles.backIconImage} />
                </TouchableOpacity>
                <TextInput
@@ -235,7 +231,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                />
                {searchQuery.length > 0 && (
                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                   {/* תמונת סגירה (X) */}
                    <Image source={CLOSE_ICON} style={styles.actionIconImage} />
                  </TouchableOpacity>
                )}

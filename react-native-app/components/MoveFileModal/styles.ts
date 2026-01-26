@@ -29,10 +29,9 @@ export const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginRight: 8,
+    marginRight: 10, // הרווח המתוקן
     marginLeft: -8,
   },
-  // עיצוב לאייקון חזור (תמונה)
   backIconImage: {
     width: 24,
     height: 24,
@@ -61,17 +60,17 @@ export const styles = StyleSheet.create({
   iconButton: {
     padding: 8,
   },
-  // עיצוב לאייקון חיפוש/סגירה (תמונה)
   actionIconImage: {
-    width: 24,
-    height: 24,
+    width: 34, // הגודל הגדול שביקשת
+    height: 34,
     resizeMode: 'contain',
-    opacity: 0.6, // קצת שקיפות כמו האייקונים האפורים
+    opacity: 0.6, 
   },
 
   // --- List Content ---
   listContent: {
-    paddingBottom: 90, 
+    paddingBottom: 90,
+    paddingTop: 16, // הרווח העליון שביקשת
   },
   folderItem: {
     flexDirection: 'row',
@@ -84,7 +83,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // עיצוב לאייקון התיקייה עצמה
   folderImage: {
     width: 28,
     height: 28,
