@@ -1,31 +1,28 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  // הרקע השקוף מאחורי המודל
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // החשכה של המסך
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // רקע חצי שקוף
     justifyContent: 'flex-end', // מצמיד את התוכן למטה
   },
   
-  // הקופסה הלבנה שעולה מלמטה
   modalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingBottom: 20, // רווח למטה (במיוחד לאייפונים חדשים)
-    maxHeight: '80%', // לא לתפוס את כל המסך
+    height: height * 0.55, 
     width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
+    paddingBottom: 20,
   },
 
-  // הקו האפור הקטן למעלה (ידית גרירה)
   dragHandle: {
     width: 40,
     height: 4,
@@ -33,10 +30,9 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,
-    marginBottom: 12,
+    marginBottom: 8,
   },
 
-  // כותרת עם שם הקובץ
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -47,47 +43,60 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
   },
   headerIcon: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     marginRight: 12,
     resizeMode: 'contain',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18, 
     fontWeight: '600',
     color: '#202124',
     flex: 1,
   },
 
-  // פריט בתפריט
+  contentScroll: {
+    paddingBottom: 30,
+  },
+
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 15, 
     paddingHorizontal: 24,
   },
+  
+  // --- אייקונים רגילים + כוכב מלא ---
   menuItemIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 16,
+    width: 28, 
+    height: 28,
+    marginRight: 20, 
     resizeMode: 'contain',
-    opacity: 0.6, // צבע אפור עדין לאייקונים
+    opacity: 0.6,
   },
+
+  // --- אייקון כוכב ריק (קטן יותר) ---
+  emptyStarIcon: {
+    width: 22,   // קטן יותר (היה 28)
+    height: 22,
+    marginRight: 26, // רווח גדול יותר (20 + 6) כדי לפצות
+    resizeMode: 'contain',
+    opacity: 0.6,
+  },
+  
   menuItemText: {
     fontSize: 16,
     color: '#3c4043',
   },
 
-  // קו מפריד
   divider: {
     height: 1,
     backgroundColor: '#f1f3f4',
     marginVertical: 8,
   },
 
-  // אינדיקטור טעינה
   loadingContainer: {
-    padding: 20,
+    padding: 50,
     alignItems: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Modal, 
   View, 
@@ -7,38 +7,44 @@ import {
   Image, 
   ScrollView, 
   ActivityIndicator,
-  TouchableWithoutFeedback 
+  TouchableWithoutFeedback,
+  Animated, 
+  Dimensions
 } from 'react-native';
 import { styles } from './styles';
 
-// פונקציות עזר (מהקבצים שלך)
-import { can_change_permissions, can_edit, can_view } from '@/utilities/roles'; 
+// חיבור לשרת
 import { getRole, getFileById } from '@/utilities/api'; 
+// שימי לב: אם הנתיב אצלך הוא לא @, תשני ל- '../../utilities/api'
 
-// --- תמונות אייקונים ---
-// שימי לב: השתמשתי בשמות מקבצים שהיו לך בקוד ה-WEB, תוודאי שהם קיימים ב-assets/images
-const ICON_OPEN = require('../../assets/images/open_icon.png'); // או להשתמש בלוגו של הקובץ
+// --- תמונות ---
+const ICON_OPEN = require('../../assets/images/open_icon.png');
 const ICON_DOWNLOAD = require('../../assets/images/download_icon.png');
 const ICON_RENAME = require('../../assets/images/rename_icon.png');
 const ICON_SHARE = require('../../assets/images/share_person_icon.png');
 const ICON_LINK = require('../../assets/images/link_icon.png');
 const ICON_MOVE = require('../../assets/images/move_folder_icon.png');
-const ICON_STAR_ADD = require('../../assets/images/star_outline.png'); // צריך להוסיף אייקון כוכב ריק
-const ICON_STAR_REMOVE = require('../../assets/images/star_filled.png'); // ואייקון כוכב מלא
+const ICON_STAR_ADD = require('../../assets/images/star_outline.png');
+const ICON_STAR_REMOVE = require('../../assets/images/star_filled.png');
 const ICON_DELETE = require('../../assets/images/remove_icon.png');
 const ICON_RESTORE = require('../../assets/images/restore_icon.png');
 
-// אייקונים לטייפים (בשביל הכותרת)
 const ICON_DOC = require('../../assets/images/docs_logo.png');
 const ICON_IMG = require('../../assets/images/picture_logo.png');
 const ICON_DIR = require('../../assets/images/dir_logo.png');
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// --- Helpers ---
+const can_view = (role: number) => role >= 1;
+const can_edit = (role: number) => role >= 2;
+const can_change_permissions = (role: number) => role >= 2;
 
 interface FileActionModalProps {
   visible: boolean;
   fileID: string;
-  fileName: string; // הוספתי את זה כדי להציג בכותרת
-  fileType: string; // הוספתי את זה כדי להציג אייקון בכותרת
+  fileName: string; 
+  fileType: string; 
   onClose: () => void;
   onAction: (actionName: string) => void;
   isStarred: boolean;
@@ -56,27 +62,41 @@ const FileActionModal = ({
   isTrashed 
 }: FileActionModalProps) => {
 
+  // משתנה לאנימציה של הגלישה (מתחיל מחוץ למסך למטה)
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
   const [roles, setRoles] = useState({
     fileRole: 0,
     parentRole: 0,
     isLoading: true 
   });
 
-  // --- Fetch Roles Logic (אותו לוגיקה כמו בווב) ---
+  // --- לוגיקה אמיתית (שרת + אנימציה) ---
   useEffect(() => {
     if (visible && fileID) {
+      
+      // 1. התחלת אנימציה (במקביל לטעינה)
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+        speed: 12
+      }).start();
+
+      // 2. התחלת טעינת נתונים
       setRoles(prev => ({ ...prev, isLoading: true }));
       let isMounted = true;
 
       const fetchData = async () => {
         try {
-          // 1. קבלת הרשאה לקובץ
+          // בדיקת הרשאה לקובץ הנוכחי
           const fRole = await getRole(fileID);
           
-          // 2. מציאת אבא וקבלת הרשאה לאבא (בשביל Move)
+          // בדיקת הרשאה לאבא (בשביל כפתור Move)
           let pId = "";
           try {
             const fileDataRes = await getFileById(fileID);
+            // טיפול בתשובה (תלוי איך ה-API שלך בנוי, לפעמים צריך .json())
             const fileData = fileDataRes.json ? await fileDataRes.json() : fileDataRes;
             pId = fileData.parent_id || (fileData.ok ? (await fileData.json()).parent_id : "");
           } catch (e) { console.log("Parent check error", e); }
@@ -85,7 +105,7 @@ const FileActionModal = ({
           if (pId && pId !== 'root') {
              try { pRole = await getRole(pId); } catch(e) {}
           } else {
-             pRole = 2; // ב-Root יש בדרך כלל הרשאות
+             pRole = 2; // ל-root בדרך כלל יש הרשאה
           }
 
           if (isMounted) {
@@ -100,13 +120,38 @@ const FileActionModal = ({
           if (isMounted) setRoles(prev => ({ ...prev, isLoading: false }));
         }
       };
+      
       fetchData();
       return () => { isMounted = false; };
+
+    } else {
+      // כשהמודל סגור, מאפסים את המיקום למטה
+      slideAnim.setValue(SCREEN_HEIGHT);
     }
   }, [visible, fileID]);
 
+  // פונקציה לסגירה "חלקה" - קודם אנימציה למטה, ואז סגירה אמיתית
+  const handleClose = () => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_HEIGHT, // יורד למטה
+      duration: 200,
+      useNativeDriver: true
+    }).start(() => {
+      onClose(); 
+    });
+  };
 
-  // Helper לבחירת אייקון כותרת
+  const handleItemClick = (action: string) => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_HEIGHT,
+      duration: 200,
+      useNativeDriver: true
+    }).start(() => {
+      onAction(action);
+      onClose();
+    });
+  };
+
   const getHeaderIcon = () => {
     switch (fileType) {
         case 'image': return ICON_IMG;
@@ -115,46 +160,40 @@ const FileActionModal = ({
     }
   };
 
-  const handleItemClick = (action: string) => {
-    onClose(); // סגור את המודל
-    setTimeout(() => {
-        onAction(action); // תפעיל את הפעולה
-    }, 200);
-  };
-
   const { fileRole, parentRole, isLoading } = roles;
 
   return (
     <Modal
-      animationType="slide"
+      animationType="fade" // רקע שחור דוהה
       transparent={true}
       visible={visible}
-      onRequestClose={onClose} // חובה לאנדרואיד (כפתור חזור)
+      onRequestClose={handleClose} 
     >
-      {/* לחיצה על הרקע סוגרת את המודל */}
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           
-          {/* מונע סגירה כשלוחצים על המודל עצמו */}
           <TouchableWithoutFeedback>
-            <View style={styles.modalContainer}>
+            {/* הקופסה הלבנה מחליקה למעלה */}
+            <Animated.View 
+              style={[
+                styles.modalContainer, 
+                { transform: [{ translateY: slideAnim }] }
+              ]}
+            >
               <View style={styles.dragHandle} />
 
-              {/* --- Header: שם הקובץ --- */}
               <View style={styles.headerContainer}>
                  <Image source={getHeaderIcon()} style={styles.headerIcon} />
                  <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
               </View>
 
-              {/* --- Loading State --- */}
               {isLoading ? (
                 <View style={styles.loadingContainer}>
                    <ActivityIndicator size="large" color="#1a73e8" />
                 </View>
               ) : (
-                <ScrollView>
+                <ScrollView contentContainerStyle={styles.contentScroll}>
                   
-                  {/* Open */}
                   {can_view(fileRole) && (
                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('open')}>
                       <Image source={ICON_OPEN} style={styles.menuItemIcon} />
@@ -162,7 +201,6 @@ const FileActionModal = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Download */}
                   {can_view(fileRole) && (
                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('download')}>
                       <Image source={ICON_DOWNLOAD} style={styles.menuItemIcon} />
@@ -170,7 +208,6 @@ const FileActionModal = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Rename */}
                   {can_edit(fileRole) && (
                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('rename')}>
                       <Image source={ICON_RENAME} style={styles.menuItemIcon} />
@@ -180,7 +217,6 @@ const FileActionModal = ({
 
                   <View style={styles.divider} />
 
-                  {/* Share & Link (שיטחתי את התת-תפריט) */}
                   {can_change_permissions(fileRole) && (
                     <>
                         <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('share_file')}>
@@ -197,7 +233,6 @@ const FileActionModal = ({
 
                   <View style={styles.divider} />
 
-                  {/* Move */}
                   {can_edit(fileRole) && can_edit(parentRole) && (
                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('move')}>
                       <Image source={ICON_MOVE} style={styles.menuItemIcon} />
@@ -205,10 +240,12 @@ const FileActionModal = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Star */}
                   {can_view(fileRole) && (
                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick(isStarred ? 'remove_star' : 'add_star')}>
-                      <Image source={isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD} style={styles.menuItemIcon} />
+                      <Image 
+                        source={isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD} 
+                        style={isStarred ? styles.menuItemIcon : styles.emptyStarIcon} 
+                      />
                       <Text style={styles.menuItemText}>
                           {isStarred ? "Remove from starred" : "Add to starred"}
                       </Text>
@@ -217,7 +254,6 @@ const FileActionModal = ({
 
                   <View style={styles.divider} />
 
-                  {/* Delete / Restore */}
                   {can_edit(fileRole) && (
                      <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('delete')}>
                         <Image source={ICON_DELETE} style={styles.menuItemIcon} />
@@ -232,12 +268,9 @@ const FileActionModal = ({
                      </TouchableOpacity>
                   )}
                   
-                  {/* סתם ריפוד קטן למטה */}
-                  <View style={{height: 20}} />
-
                 </ScrollView>
               )}
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
