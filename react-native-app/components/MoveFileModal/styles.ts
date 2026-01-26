@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#dadce0',
-    minHeight: 70, // קצת יותר גבוה בשביל שתי שורות טקסט
+    minHeight: 70, 
   },
   headerLeft: {
     flexDirection: 'row',
@@ -32,22 +32,26 @@ export const styles = StyleSheet.create({
     marginRight: 8,
     marginLeft: -8,
   },
+  // עיצוב לאייקון חזור (תמונה)
+  backIconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
   headerTitlesContainer: {
     flexDirection: 'column',
     justifyContent: 'center',
-    flex: 1, // כדי שהטקסט לא יחתך
+    flex: 1, 
   },
-  // הכותרת הראשית: Move "File.png"
   headerMainTitle: {
     fontSize: 18,
-    fontWeight: '500', // קצת יותר מודגש
+    fontWeight: '500',
     color: '#202124',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  // הכותרת המשנית: Current dir: My Drive
   headerSubTitle: {
     fontSize: 14,
-    color: '#5F6368', // אפור
+    color: '#5F6368', 
   },
   
   headerRight: {
@@ -56,6 +60,13 @@ export const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
+  },
+  // עיצוב לאייקון חיפוש/סגירה (תמונה)
+  actionIconImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    opacity: 0.6, // קצת שקיפות כמו האייקונים האפורים
   },
 
   // --- List Content ---
@@ -72,6 +83,12 @@ export const styles = StyleSheet.create({
     marginRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // עיצוב לאייקון התיקייה עצמה
+  folderImage: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
   },
   textContainer: {
     flex: 1,
@@ -133,7 +150,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   moveButtonDisabled: {
-    backgroundColor: '#f1f3f4', // אפור בהיר כשהוא מבוטל
+    backgroundColor: '#f1f3f4', 
   },
   moveButtonText: {
     color: '#fff',
@@ -141,7 +158,7 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   moveButtonTextDisabled: {
-    color: '#bdc1c6', // טקסט אפרפר כשהוא מבוטל
+    color: '#bdc1c6', 
   },
   
   centerContainer: {

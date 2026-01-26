@@ -7,11 +7,18 @@ import {
   FlatList, 
   TextInput, 
   ActivityIndicator, 
-  SafeAreaView 
+  SafeAreaView,
+  Image // הוספנו את Image
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import { getFilesByDirectory, patchFile, getFilesBySearch, getFileById, getAllFiles } from '@/utilities/api'; 
+
+// --- משתני תמונות (תוסיפי כאן את ה-path שלך) ---
+// דוגמה לשימוש: const FOLDER_ICON = require('./assets/folder.png');
+const FOLDER_ICON = require('../../assets/dir_logo.png'); // הוספת תמונת תיקייה
+const BACK_ICON = require('../../assets/back_icon.png'); // הוספת תמונת חזור
+const SEARCH_ICON = require('../../assets/search_icon.png'); // הוספת תמונת חיפוש
+const CLOSE_ICON = require('../../assets/x_icon.png'); // ה-X הקטן
 
 interface MoveFileModalProps {
   visible: boolean;
@@ -33,14 +40,13 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // State למעקב אחרי המקור (בשביל לדעת מתי לנטרל את הכפתור)
   const [originParentId, setOriginParentId] = useState<string | null>(null);
   const [originParentName, setOriginParentName] = useState<string>('My Drive');
 
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. אתחול - שאיבת מידע על הקובץ והמיקום שלו
+  // 1. אתחול - שאיבת מידע מהשרת (עם Fallback אם השרת למטה)
   useEffect(() => {
     if (visible && fileId) {
       const init = async () => {
@@ -51,7 +57,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           
           setOriginParentId(parentId);
 
-          // מנסים להביא את שם התיקייה המקורית
           let startName = 'My Drive';
           if (parentId !== 'root' && parentId !== null) {
              try {
@@ -66,7 +71,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           setCurrentPath([{ fid: parentId, name: startName }]);
 
         } catch (e) {
-          // --- התיקון: אם יש שגיאה (שרת למטה), מניחים שאנחנו ב-Root ---
+          // Fallback אם השרת למטה
           console.log("Server down or init failed -> Fallback to Root");
           setOriginParentId('root');
           setOriginParentName('My Drive');
@@ -99,7 +104,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         let data = response.json ? await response.json() : response;
         if (!Array.isArray(data)) data = data ? [data] : [];
 
-        // מסננים כדי להראות רק תיקיות, ולא את התיקייה עצמה שאנחנו מזיזים
         let folderList = data.filter((item: any) => 
             (item.type === 'directory' || item.type === 'dir' || item.type === 'folder') &&
             item.fid !== fileId
@@ -109,7 +113,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             name: item.name || 'Untitled',
         }));
 
-        // ב-Root מראים רק תיקיות ראשיות (אופציונלי, תלוי ב-API שלך)
         if (!searchQuery && currentFolder.fid === 'root') {
            folderList = folderList.filter((item: any) => !item.parent_id || item.parent_id === 'root');
         }
@@ -118,7 +121,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
       }
     } catch (error) {
       console.error("Fetch folders failed", error);
-      setFolders([]); // מציג רשימה ריקה אם נכשל
+      setFolders([]);
     } finally {
       setLoading(false);
     }
@@ -147,12 +150,11 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         return newPath;
       });
     } else {
-      onClose(); // יציאה מהמודל
+      onClose(); 
     }
   };
 
   const handleMove = async () => {
-    // הגנה נוספת: לא לזוז אם אנחנו כבר שם
     if (currentFolder.fid === originParentId) return;
 
     try {
@@ -169,13 +171,13 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     }
   };
 
-  // בדיקה האם אנחנו בתיקיית המקור (כדי לנטרל את הכפתור ולהציג כותרת מתאימה)
   const isAtOrigin = currentFolder.fid === originParentId;
 
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
-        <Ionicons name="folder" size={24} color="#5F6368" /> 
+        {/* שימוש בתמונה במקום אייקון */}
+        <Image source={FOLDER_ICON} style={styles.folderImage} />
       </View>
       <View style={styles.textContainer}>
         <Text style={styles.folderName} numberOfLines={1}>{item.name}</Text>
@@ -193,14 +195,14 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-                  <Ionicons name="arrow-back" size={24} color="#202124" />
+                  {/* תמונת חזור */}
+                  <Image source={BACK_ICON} style={styles.backIconImage} />
                 </TouchableOpacity>
                 
                 <View style={styles.headerTitlesContainer}>
                     <Text style={styles.headerMainTitle} numberOfLines={1}>
                         Move "{fileName}"
                     </Text>
-                    {/* כאן התיקון לתצוגת הכותרת המשנית */}
                     <Text style={styles.headerSubTitle} numberOfLines={1}>
                         {isAtOrigin 
                             ? `Current dir: ${originParentName}` 
@@ -212,7 +214,8 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={() => setIsSearchActive(true)} style={styles.iconButton}>
-                  <Ionicons name="search" size={24} color="#5F6368" />
+                  {/* תמונת חיפוש */}
+                  <Image source={SEARCH_ICON} style={styles.actionIconImage} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -220,7 +223,8 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             // Search Overlay
             <View style={styles.searchContainer}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
-                  <Ionicons name="arrow-back" size={24} color="#5F6368" />
+                  {/* תמונת חזור בתוך חיפוש */}
+                  <Image source={BACK_ICON} style={styles.backIconImage} />
                </TouchableOpacity>
                <TextInput
                   style={styles.searchInput}
@@ -231,7 +235,8 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                />
                {searchQuery.length > 0 && (
                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                   <Ionicons name="close" size={20} color="#5F6368" />
+                   {/* תמונת סגירה (X) */}
+                   <Image source={CLOSE_ICON} style={styles.actionIconImage} />
                  </TouchableOpacity>
                )}
             </View>
