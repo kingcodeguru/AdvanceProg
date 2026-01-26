@@ -16,7 +16,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as api from '../utilities/api'; // Ensure this path matches your project structure
+import * as api from '../utilities/api';
 
 export default function Navbar({ onMenuPress }) {
     const router = useRouter();
