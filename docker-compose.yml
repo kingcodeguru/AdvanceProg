@@ -1,11 +1,13 @@
 volumes:
   drive_volume:
+  mongo_volume:
 
 services:
   # --------------------------------------------------------------------------
   # first executable: tests
   # --------------------------------------------------------------------------
   tests:
+    profiles: ["test_file_server"]
     build:
       context: .
       dockerfile: tests/part2/Dockerfile.tests
@@ -14,6 +16,7 @@ services:
   # second executable: fileServer
   # --------------------------------------------------------------------------
   file_server:
+    profiles: ["drive", "test_file_server"]
     build:
       context: .
       dockerfile: src/File_Server/Dockerfile.server
@@ -33,6 +36,7 @@ services:
   # third executable: client
   # --------------------------------------------------------------------------
   cppclient:
+    profiles: ["test_file_server"]
     build:
       context: .
       dockerfile: src/Client/Dockerfile.cppClient
@@ -47,6 +51,7 @@ services:
   # forth executable: client
   # --------------------------------------------------------------------------
   pyclient:
+    profiles: ["test_file_server"]
     build:
       context: .
       dockerfile: src/Client/Dockerfile.pyClient
@@ -61,6 +66,7 @@ services:
   # fifth executable: web server
   # --------------------------------------------------------------------------
   web_server:
+    profiles: ["drive"]
     build:
       context: .
       dockerfile: src/Web_Server/Dockerfile.server
@@ -71,13 +77,15 @@ services:
       - WEB_PORT=8080
       - FS_IP=file_server
       - FS_PORT=2385
+      - DB_CONN=mongodb://mongo_db:27017/DriveDB
       - LEN_SIZE=12
     command: ["node", "src/Web_Server/app.js"]
     
   # --------------------------------------------------------------------------
-  # sixth executable: web server
+  # sixth executable: web app
   # --------------------------------------------------------------------------
   web_app:
+    profiles: ["drive"]
     build:
       context: ./web-app
       dockerfile: Dockerfile.app
@@ -89,3 +97,14 @@ services:
       - WS_IP=web_server
       - WS_PORT=8080
     command: ["npm", "start"]
+  # --------------------------------------------------------------------------
+  # seventh executable: mongo database
+  # --------------------------------------------------------------------------
+  mongo_db:
+    profiles: ["drive"]
+    image: mongo:latest
+    container_name: drive-mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_volume:/data/db

@@ -1,6 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+
+const DB_CONN = process.env.DB_CONN || 'mongodb://localhost:27017/DriveDB';
 const PORT = process.env.WEB_PORT || 8080;
+
+// connect to DB
+mongoose.connect(DB_CONN);
 
 const app = express();
 

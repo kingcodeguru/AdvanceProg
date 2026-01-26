@@ -1,34 +1,21 @@
-
-//our demo database
-let database = {
-    "users": [],
-    "files": [],
-    "permissions": []
-}
-
-//our json strucures:
-
+const User = require('../../models/User');
+const FileDir = require('../../models/FileDir');
+const Permission = require('../../models/Permission');
 
 //User: {uid, name, avatar, password, creation_date, email}
 //FileDir: {fid, name, parent_id, is_file}
 //Permission: {pid, fid, uid, role}
 
-
 // Users:
 
-
 /**
- * add user - assumes that it is without files
- * @param {User} userData 
- * @throws {Error} throws an error if the users uid already exists
+ * add user
+ * @param {Object} userData 
+ * @throws {Error} 
  */
-function PostUser(userData) {
-    // check for unique keys. unique user keys must be uid and email
-    const boolExistsUid = database.users.some(user => user.uid == userData.uid || user.email == userData.email);
-    if (boolExistsUid) {
-        throw new Error("409 user already exists");
-    }
-    database.users.push(userData);
+async function PostUser(userData) {
+    const newUser = new User(userData);
+    await newUser.save();
 }
  
 /**
@@ -36,9 +23,9 @@ function PostUser(userData) {
  * @param {string} uid 
  * @returns a list of users with the given uid (suppose to be length == 1)
  */
-function GetUser(uid) {
-    const users = database.users.filter(user => user.uid == uid);
-    return structuredClone(users);
+async function GetUser(uid) {
+    const users = await User.find({ uid: uid });
+    return users.map(user => user.toObject());
 }
 
 /**
@@ -46,21 +33,23 @@ function GetUser(uid) {
  * @param {string} name 
  * @returns a list of users with the given name (suppose to be length == 1)
  */
-function GetUserByName(name) {
-    const users = database.users.filter(user => user.name == name);
-    return structuredClone(users);
+async function GetUserByName(name) {
+    const users = await User.find({ name: name });
+    return users.map(user => user.toObject());
 }
 
 /**
- * @param {string} uid
- * @param {User} user
+ * Update user
+ * @param {string} uid 
+ * @param {Object} userData 
+ * @throws {Error} if user not found
  */
-function PatchUser(uid, user) {
-    const user_index = database.users.findIndex(u => u.uid == uid);
-    if (user_index == -1) {
-        throw new Error("user not found");
+async function PatchUser(uid, userData) {
+    const result = await User.updateOne({ uid: uid }, userData);
+
+    if (result.matchedCount === 0) {
+        throw new Error("404 user not found");
     }
-    database.users[user_index] = user;
 }
 
 /**
@@ -69,38 +58,42 @@ function PatchUser(uid, user) {
  * @param {string} password 
  * @returns a list of users with the given name and password
  */
-function LogIn(email, password) {
-    return structuredClone(database.users.filter(user => user.email == email && user.password == password));
+async function LogIn(email, password) {
+    return await User.find({ email, password }).lean();
 }
 
 /**
- * 
- * @param {string} uid
+ * * @param {string} uid
  * @returns a list of all files and directories of that user
  */
-function GetAllFileDirs(uid) {
-    const user = database.users.find(user => user.uid == uid);
-    if (user == undefined) {
+async function GetAllFileDirs(uid) {
+    // check if user exists
+    const userExists = await User.exists({ uid: uid });
+    if (!userExists) {
         return [];
     }
-    const userPermissions = database.permissions.filter(permission => permission.uid == uid);
-    const files = database.files.filter(file => userPermissions.some(permission => permission.fid == file.fid));
-    return structuredClone(files);
+
+    // Find permissions for this user
+    // We use .distinct('fid') to get an array of just the File IDs
+    const userPermissions = await Permission.find({ uid: uid }).distinct('fid');
+
+    // Find all files whose ID is in the userPermissions array
+    // The $in operator is perfect for matching an array of IDs
+    const files = await FileDir.find({ 
+        fid: { $in: userPermissions } 
+    }).lean();
+
+    return files;
 }
-
-
-
 
 // Files:
 
-
 /**
- * 
- * @param {string} fid
+ * * @param {string} fid
  * @returns a list of all subfiles and subdirectories of directory with fid
  */
-function GetSubFileDirs(fid) {
-    return structuredClone(database.files.filter(file => file.parent_id == fid));
+async function GetSubFileDirs(fid) {
+    return await FileDir.find({ parent_id: fid }).lean();
 }
 
 /**
@@ -108,12 +101,9 @@ function GetSubFileDirs(fid) {
  * @param {FileDir} FileDir 
  * @throws {Error} if the file already exists
  */
-function PostFileDir(FileDir) {
-    const boolExistsFid = database.files.some(file => file.fid == FileDir.fid);
-    if (boolExistsFid) {
-        throw new Error("409 file already exists");
-    }
-    database.files.push(FileDir);
+async function PostFileDir(fileData) {
+    const newFile = new FileDir(fileData); // will throw error if fid defined.
+    await newFile.save();
 }
 
 /**
@@ -121,56 +111,49 @@ function PostFileDir(FileDir) {
  * @param {string} fid 
  * @returns a list of files with the given fid
  */
-function GetFileDir(fid) {
-    const files = database.files.filter(file => file.fid == fid);
-    return structuredClone(files);
+async function GetFileDir(fid) {
+    return await FileDir.find({ fid: fid }).lean();
 }
 
 /**
  * updates the file
  * @param {FileDir} FileDir 
  */
-function PatchFileDir(FileDir) {
-    // get previous version of the file file (throw exception if not exists, but it should always exists)
-    const file_index = database.files.findIndex(file => file.fid == FileDir.fid);
-    if (file_index == -1) {
-        // Never suppose to happent because model checked for the existing of the file
-        return;
-    }
-
-    database.files[file_index] = FileDir;
+async function PatchFileDir(fileData) {
+    const updatedFile = await FileDir.findOneAndUpdate(
+        { fid: fileData.fid },
+        fileData,
+        { new: true }
+    );
 }
-
 
 /**
  * deletes the file from the file list and from his parent dir sub_file_dir list
  * @param {string} fid 
  */
-function DeleteFileDir(fid) {
-    database.files = database.files.filter(file => file.fid != fid);
+async function DeleteFileDir(fid) {
+    await FileDir.deleteOne({ fid: fid });
 }
-
 
 /**
- * 
+ * * @param {string} uid 
  * @param {string} fid 
- * @param {string} uid
- * @returns a list of permissions with the given fid and uid
+ * @returns {Promise<Array>} a list of permissions with the given fid and uid
  */
-function GetPermissions(uid, fid) {
-    const permissions = database.permissions.filter(permission => permission.uid == uid && permission.fid == fid);
-    return structuredClone(permissions);
+async function GetPermissions(uid, fid) {
+    return await Permission.find({ 
+        uid: uid, 
+        fid: fid 
+    }).lean();
 }
-
 
 /**
  * 
  * @param {string} fid 
  * @returns a list of permissions with the given fid
  */
-function GetPermissionsAll(fid) {
-    const permissions = database.permissions.filter(permission => permission.fid == fid);
-    return structuredClone(permissions);
+async function GetPermissionsAll(fid) {
+    return await Permission.find({ fid: fid }).lean();
 }
 
 /**
@@ -178,69 +161,68 @@ function GetPermissionsAll(fid) {
  * @param {string} pid 
  * @returns a list of permissions with the given pid
  */
-function GetPermissionsByPid(pid) {
-    const permissions = database.permissions.filter(permission => permission.pid == pid);
-    return structuredClone(permissions);
+async function GetPermissionsByPid(pid) {
+    return await Permission.find({ pid: pid }).lean();
 }
-
 
 /**
  * adds permission to the permission list
  * @param {Permission} Permission 
  * @throws {Error} if the permission already exists
  */
-function PostPermission(Permission) {
-    const boolExistsPid = database.permissions.some(permission => permission.pid == Permission.pid);
-    if (boolExistsPid) {
-        throw new Error("409 permission already exists");
-    }
-    database.permissions.push(Permission);
+async function PostPermission(permissionData) {
+    const newPermission = new Permission(permissionData);
+    await newPermission.save();
 }
-
 
 /**
  * updates the permission
- * @param {Permission} Permission 
+ * @param {Object} permissionData 
  */
-function PatchPermission(Permission) {
-    const permission_index = database.permissions.findIndex(permission => permission.pid == Permission.pid);
-    database.permissions[permission_index] = Permission;
+async function PatchPermission(permissionData) {
+    await Permission.findOneAndUpdate(
+        { pid: permissionData.pid },
+        permissionData,
+        { new: true, runValidators: true }
+    );
 }
-
 
 /**
  * deletes the permission from the permissions list
  * @param {string} pid 
  */
-function DeletePermission(pid) {
-    database.permissions = database.permissions.filter(permission => permission.pid != pid);
+async function DeletePermission(pid) {
+    await Permission.deleteOne({ pid: pid });
 }
-
-
 
 // Search:
 
 
 /**
- * 
  * @param {string} uid
  * @param {string} query 
- * @returns a list of file_dirs that include the query in their names. 
+ * @returns {Promise<Array>} a list of file_dirs that include the query in their names. 
  */
-function SearchFilesByName(uid, query) {
-    const userPermissions = database.permissions.filter(permission => permission.uid == uid);
-    const files_for_user = database.files.filter(file => userPermissions.some(permission => permission.fid == file.fid));
-    const filesContainingQuery = files_for_user.filter(file => file.name.toLowerCase().includes(query));
-    return structuredClone(filesContainingQuery);
+async function SearchFilesByName(uid, query) {
+    // Get all fid the user has permission to see
+    const userPermissions = await Permission.find({ uid: uid }).distinct('fid');
+
+    // Search for files that are in that ID list AND match the name query
+    // 'i' makes the regex case-insensitive, matching your .toLowerCase() logic
+    const filesContainingQuery = await FileDir.find({
+        fid: { $in: userPermissions },
+        name: { $regex: query, $options: 'i' }
+    }).lean();
+
+    return filesContainingQuery;
 }
 
 /**
  * @param {string} email 
- * @returns a list of users with the given email (supposed to be length == 1)
+ * @returns {Promise<Array>} a list of users with the given email
  */
-function GetUserByEmail(email) {
-    const users = database.users.filter(user => user.email === email);
-    return structuredClone(users);
+async function GetUserByEmail(email) {
+    return await User.find({ email: email }).lean();
 }
 
 

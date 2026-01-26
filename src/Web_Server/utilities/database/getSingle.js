@@ -10,8 +10,8 @@ const { HttpError, STATUSCODE } = require('../errors/HttpError'); // HttpError f
  * @returns The single file with the given id
  * @throws {HttpError} when cannot find the file or when there is more than one
  */
-function getSingleFile(fid) {
-    const list_files = db.GetFileDir(fid);
+async function getSingleFile(fid) {
+    const list_files = await db.GetFileDir(fid);
     if (list_files.length == 0) {
         throw new HttpError(STATUSCODE.NOT_FOUND, `couldn't find filedir ${fid}`);
     } else if (list_files.length > 1) {
@@ -25,9 +25,9 @@ function getSingleFile(fid) {
  * @returns the user with the given id
  * @throws {HttpError} when cannot find the user
  */
-function getSingleUser(uid) {
+async function getSingleUser(uid) {
     // Check if user exists
-    const userList = db.GetUser(uid);
+    const userList = await db.GetUser(uid);
     if (userList.length == 0) {
         throw new HttpError(STATUSCODE.NOT_FOUND, `couldn't find user ${uid}`);
     }
@@ -43,9 +43,9 @@ function getSingleUser(uid) {
  * @returns the permission with the given id
  * @throws {HttpError} when cannot find the permission
  */
-function getSinglePermission(pid) {
+async function getSinglePermission(pid) {
     // Check if user exists
-    const permList = db.GetPermissionsByPid(pid);
+    const permList = await db.GetPermissionsByPid(pid);
     if (permList.length == 0) {
         throw new HttpError(STATUSCODE.NOT_FOUND, `couldn't find permission ${pid}`);
     }
@@ -61,9 +61,9 @@ function getSinglePermission(pid) {
  * @param {string} fid 
  * @returns the role of the user with uid in the file with fid
  */
-function getRole(uid, fid) {
+async function getRole(uid, fid) {
     // Receive list of premissions
-    const list_premissions = db.GetPermissions(uid, fid);
+    const list_premissions = await db.GetPermissions(uid, fid);
     if (list_premissions.length == 0) {
         // the user have no access to the file
         throw new HttpError(STATUSCODE.FORBIDDEN, `user ${uid} cannot access the file/dir ${fid}`);
