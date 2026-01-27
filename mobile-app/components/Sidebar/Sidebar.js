@@ -144,7 +144,7 @@ export default function Sidebar({ visible, onClose }) {
                     <View style={styles.headerSpacer} />
                     
                     {/* Brand / Logo Area */}
-                    <Text style={styles.brandTitle}>My Cloud</Text>
+                    <Text style={styles.brandTitle}>LOT Drive</Text>
 
                     {/* New Button */}
                     <View style={styles.newButtonWrapper}>

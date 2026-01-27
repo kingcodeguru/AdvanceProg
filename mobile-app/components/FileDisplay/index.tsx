@@ -15,8 +15,8 @@ import * as api from '@/utilities/api';
 
 const PLUS_ICON = require('@/assets/images/plus_google.png'); 
 
-const FileDisplay = ({ refreshSignal: externalRefresh }: { refreshSignal?: any }) => {
-  const { category, searchQuery, folderId } = useLocalSearchParams();
+const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, folderId }: { refreshSignal?: any, category?: string, searchQuery?: string, folderId?: string }) => {
+  console.log(`Category: ${category}, Search Query: ${searchQuery}, Folder ID: ${folderId}`);
   const router = useRouter();
 
   const [files, setFiles] = useState<any[]>([]);

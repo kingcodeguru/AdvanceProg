@@ -1,4 +1,5 @@
-import FileDisplay from '../../components/FileDisplay';
-export default function TrashFiles() {
-  return <FileDisplay category="trash" />;
+import DriveScreen from '../../components/DriveScreen';
+
+export default function TrashFilesPage() {
+  return <DriveScreen category="trash" />;
 }

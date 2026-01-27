@@ -1,4 +1,5 @@
-import FileDisplay from '../../components/FileDisplay';
-export default function AllFiles() {
-  return <FileDisplay category="all" />;
+import DriveScreen from '../../components/DriveScreen';
+
+export default function AllFilesPage() {
+  return <DriveScreen category="all" />;
 }

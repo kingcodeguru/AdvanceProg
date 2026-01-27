@@ -1,4 +1,5 @@
-import FileDisplay from '../../components/FileDisplay';
-export default function RecentFiles() {
-  return <FileDisplay category="recent" />;
+import DriveScreen from '../../components/DriveScreen';
+
+export default function RecentFilesPage() {
+  return <DriveScreen category="recent" />;
 }
