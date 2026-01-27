@@ -25,13 +25,13 @@ const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
   // --- State ---
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pageName, setPageName] = useState("Unknown"); // בדיוק כמו בווב
+  const [pageName, setPageName] = useState("Unknown");
   const [parentId, setParentId] = useState<string | null>(null);
   
-  // שמירה זמנית בזיכרון של הקומפוננטה (כל עוד היא קיימת)
+  // שמירה זמנית של מצב התצוגה (כל עוד האפליקציה פתוחה)
   const [isLineView, setIsLineView] = useState(true);
 
-  // --- עזרים (בדיוק כמו בווב) ---
+  // עזר לתרגום קטגוריות לשמות תצוגה
   const categoryToName = (cat: string) => {
     switch (cat) {
       case 'all': return 'Home';
@@ -59,25 +59,26 @@ const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
       } else if (folderId) {
         response = await api.getFileById(folderId as string);
       } else {
-        // בדומה ל-alert('something went wrong') בווב
-        Alert.alert('Error', 'Something went wrong');
-        router.replace('/' as any);
-        return;
+        // ברירת מחדל במידה ואין פרמטרים - טעינת דף הבית
+        response = await api.getFilesByCategory('all');
+        setPageName(categoryToName('all'));
       }
 
-      // טיפול בתגובות השרת (בדיוק לפי הלוגיקה של הווב)
+      // טיפול בתגובות השרת לפי הלוגיקה של הווב
       if (response && (response.ok || response.status === 200)) {
         const data = response.json ? await response.json() : response;
         
         if (folderId) {
           setFiles(data.sub_filedirs || []);
-          setPageName(data.name);
+          setPageName(data.name || 'Folder');
           setParentId(data.parent_id);
         } else {
           setFiles(Array.isArray(data) ? data : []);
+          // אם אנחנו בקטגוריה, נוודא שהשם מעודכן
+          if (category) setPageName(categoryToName(category as string));
         }
       } else if (response.status === 401) {
-        // בדומה ל-localStorage.clear()
+        // בדומה ל-localStorage.clear() וניווט להתחלה
         router.replace('/' as any);
       } else if (response.status === 403) {
         Alert.alert('Permission', "You don't have permission to access this folder.");
@@ -89,22 +90,23 @@ const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
       }
     } catch (error) {
       console.error("Workspace fetch error:", error);
-      // אם יש שגיאת תקשורת חמורה, משאירים את ה-Unknown
       setPageName("Unknown");
     } finally {
       setLoading(false);
     }
   }, [category, searchQuery, folderId]);
 
-  // רענון בשינוי פרמטרים
+  // רענון בשינוי פרמטרים או סיגנל חיצוני
   useEffect(() => {
     fetchWorkspaceData();
   }, [fetchWorkspaceData, refreshSignal]);
 
   const handleBack = () => {
     if (parentId) {
+      // ניווט לתיקיית האב
       router.push(`/drive/directories/${parentId}` as any);
     } else {
+      // אם אין הורה, חזרה למיי דרייב
       router.push('/drive/my-drive' as any);
     }
   };
@@ -117,24 +119,35 @@ const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
       {/* --- Header --- */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {folderId && (
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={26} color="#5f6368" />
-            </TouchableOpacity>
+          {/* בחיפוש לא מציגים כותרת או חץ אחורה (לפי הווב) */}
+          {!searchQuery && (
+            <>
+              {folderId && (
+                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                  <MaterialIcons name="arrow-back" size={26} color="#5f6368" />
+                </TouchableOpacity>
+              )}
+              <Text 
+                style={styles.title} 
+                numberOfLines={1} 
+                ellipsizeMode="tail"
+              >
+                {pageName}
+              </Text>
+            </>
           )}
-          <Text style={styles.title} numberOfLines={1}>{pageName}</Text>
         </View>
 
-        {/* View Switcher (שמירה זמנית ב-State) */}
+        {/* סוויץ' החלפת תצוגה */}
         <View style={styles.viewSwitcher}>
           <TouchableOpacity 
             style={[styles.switchBtn, isLineView && styles.switchBtnActive]} 
             onPress={() => setIsLineView(true)}
           >
              <MaterialIcons 
-                name="format-list-bulleted" 
-                size={24} 
-                color={isLineView ? "#1a73e8" : "#5f6368"} 
+               name="format-list-bulleted" 
+               size={28} 
+               color={isLineView ? "#1a73e8" : "#5f6368"} 
              />
           </TouchableOpacity>
           
@@ -143,18 +156,17 @@ const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
             onPress={() => setIsLineView(false)}
           >
              <MaterialIcons 
-                name="grid-view" 
-                size={24} 
-                color={!isLineView ? "#1a73e8" : "#5f6368"} 
+               name="grid-view" 
+               size={28} 
+               color={!isLineView ? "#1a73e8" : "#5f6368"} 
              />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* --- Content --- */}
+      {/* --- תוכן הקבצים --- */}
       {loading ? (
         <View style={styles.centerContainer}>
-          {/* מציג גלגל טעינה וטקסט בדיוק כמו בווב */}
           <ActivityIndicator size="large" color="#1a73e8" />
           <Text style={{marginTop: 10, color: '#5f6368'}}>Loading files...</Text>
         </View>

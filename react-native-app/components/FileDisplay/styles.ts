@@ -19,16 +19,20 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  backButton: {
-    padding: 12,
-    marginRight: 4,
-    marginLeft: -12,
+    // הוספת מרווח בטוח מהסוויץ'
+    marginRight: 15, 
   },
   title: {
     fontSize: 22,
     fontWeight: '400',
     color: '#202124',
+    // מבטיח שהטקסט לא יחרוג מהשטח שלו
+    flexShrink: 1, 
+  },
+  backButton: {
+    padding: 12,
+    marginRight: 4,
+    marginLeft: -12,
   },
   
   // --- התיקון לסוויץ' שבאמת יגדיל אותו ---
