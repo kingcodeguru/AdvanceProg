@@ -18,7 +18,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 // Import the API helper to communicate with the backend
-import * as api from '../../utilities/api'; 
+import * as api from '../../../utilities/api'; 
 
 // Preset colors matching the Web App for consistency
 const PRESET_COLORS = [

@@ -24,7 +24,7 @@ import {
     updatePermission, 
     removePermission,
     getFileById
-} from '../../../utilities/api'; // Adjust path if needed
+} from '../../../../utilities/api'; // Adjust path if needed
 
 // --- Constants ---
 
