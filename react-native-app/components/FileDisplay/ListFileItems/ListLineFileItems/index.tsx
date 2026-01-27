@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, FlatList, Image } from 'react-native';
+import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './styles';
 
-// ייבוא השורה הבודדת (שעיצבנו בול כמו שרצית)
+// ייבוא השורה הבודדת
 import LineFileItem from './LineFileItem'; 
 
 // תמונת "תיקייה ריקה"
@@ -22,47 +22,46 @@ interface FileData {
 interface ListLineFileItemsProps {
   files: FileData[] | null | undefined;
   onAction: (actionName: string, file: FileData) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void; // הוספת ה-Prop
 }
 
-const ListLineFileItems = ({ files, onAction }: ListLineFileItemsProps) => {
+const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps) => {
 
-  // --- מצב 1: אין קבצים (Empty State) ---
-  if (!files || files.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Image 
-          source={EMPTY_FOLDER_IMG} 
-          style={styles.emptyImage} 
-          resizeMode="contain"
-        />
-        {/* בלי טקסט, כמו שביקשת */}
-      </View>
-    );
-  }
+  // פונקציה פנימית לרינדור מצב ריק (Empty State) בתוך ה-FlatList
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Image 
+        source={EMPTY_FOLDER_IMG} 
+        style={styles.emptyImage} 
+        resizeMode="contain"
+      />
+    </View>
+  );
 
-  // --- מצב 2: רשימה (List) ---
   return (
     <View style={styles.container}>
-      {/* במובייל אנחנו מוותרים על שורת הכותרת (Name/Date/Owner)
-         כי זה תופס מקום והמידע כבר קיים בתוך כל שורה (LineFileItem).
-         זה נותן את המראה הנקי של ה"בדיקה" שעשינו.
-      */}
       <FlatList
-        data={files}
+        data={files || []}
         keyExtractor={(item) => item.fid}
         
+        // --- חיבור האנימציה של ה-FAB ---
+        onScroll={onScroll}
+        scrollEventThrottle={16} // מבטיח דגימת גלילה תכופה לאנימציה חלקה
+        
+        // --- טיפול במצב ריק ---
+        ListEmptyComponent={renderEmptyComponent}
+        
         // הגדרות עיצוב לרשימה
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          (!files || files.length === 0) && { flex: 1 } // מבטיח מרכוז כשהרשימה ריקה
+        ]}
         showsVerticalScrollIndicator={false}
         
         renderItem={({ item }) => (
           <LineFileItem 
             fileData={item}
-            
-            // לחיצה רגילה -> פתיחה
             onPress={() => onAction('open', item)}
-            
-            // לחיצה על 3 נקודות -> תפריט
             onMenuPress={() => onAction('menu', item)}
           />
         )}

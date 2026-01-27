@@ -1,188 +1,226 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  SafeAreaView, 
-  Alert 
+  View, Text, TouchableOpacity, ActivityIndicator, SafeAreaView, 
+  Alert, Modal, Animated, Image, NativeSyntheticEvent, NativeScrollEvent 
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 import { styles } from './styles';
 import ListFileItems from './ListFileItems';
 import * as api from '@/utilities/api'; 
 
-interface FileDisplayProps {
-  refreshSignal?: number | boolean;
-}
+// משתנה לאייקון הפלוס - תוכלי לעדכן את הנתיב כאן
+const PLUS_ICON = require('@/assets/images/plus_button.svg'); 
 
-const FileDisplay = ({ refreshSignal }: FileDisplayProps) => {
+const FileDisplay = ({ refreshSignal: externalRefresh }: { refreshSignal?: any }) => {
   const { category, searchQuery, folderId } = useLocalSearchParams();
   const router = useRouter();
 
-  // --- State ---
+  // --- States ---
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageName, setPageName] = useState("Unknown");
   const [parentId, setParentId] = useState<string | null>(null);
-  
-  // שמירה זמנית של מצב התצוגה (כל עוד האפליקציה פתוחה)
   const [isLineView, setIsLineView] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(false);
 
-  // עזר לתרגום קטגוריות לשמות תצוגה
-  const categoryToName = (cat: string) => {
-    switch (cat) {
-      case 'all': return 'Home';
-      case 'my-drive': return 'My Drive';
-      case 'shared-with-me': return 'Shared with me';
-      case 'recent': return 'Recent';
-      case 'starred': return 'Starred';
-      case 'bin': return 'Trash';
-      default: return 'Home';
+  // אנימציה לכפתור הצף (FAB)
+  const fabOpacity = useRef(new Animated.Value(1)).current;
+
+  // --- לוגיקת API (מועתקת מה-Web) ---
+  const sendToFileAPI = async (payload: any) => {
+    try {
+      const response = await api.postFiledir(payload);
+      if (response && response.ok) return true;
+    } catch (err) {
+      console.error("API Error:", err);
+    }
+    return null;
+  };
+
+  const handleCreateFolder = () => {
+    setIsMenuOpen(false);
+    // Alert.prompt עובד ב-iOS. באנדרואיד מומלץ להשתמש בתיבת טקסט מותאמת אישית בעתיד.
+    Alert.prompt("תיקייה חדשה", "הזן שם לתיקייה:", async (name) => {
+      if (!name) return;
+      await sendToFileAPI({ name, is_file: false, parent_id: folderId || null });
+      setRefreshSignal(prev => !prev);
+    }, 'plain-text');
+  };
+
+  const handleFileUpload = async (type: 'image' | 'file') => {
+    setIsMenuOpen(false);
+    try {
+      if (type === 'image') {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 1,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          // חילוץ שם קובץ מתוך ה-URI במידה ואין name
+          const fileName = asset.uri.split('/').pop() || "upload_image.jpg";
+          
+          await sendToFileAPI({ 
+            name: fileName, 
+            is_file: true, 
+            content: asset.uri, 
+            parent_id: folderId || null, 
+            type: 'image' 
+          });
+          setRefreshSignal(prev => !prev);
+        }
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: "*/*",
+          copyToCacheDirectory: true
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          await sendToFileAPI({ 
+            name: asset.name, // ב-DocumentPicker קיים name
+            is_file: true, 
+            content: asset.uri, 
+            parent_id: folderId || null, 
+            type: 'text' 
+          });
+          setRefreshSignal(prev => !prev);
+        }
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
     }
   };
 
-  // --- לוגיקה ראשית: fetchWorkspaceData ---
+  // --- פונקציית הסתרת הכפתור בגלילה ---
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    // אם גוללים למטה יותר מ-20 פיקסלים, הכפתור נעלם
+    Animated.timing(fabOpacity, {
+      toValue: offsetY > 20 ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const fetchWorkspaceData = useCallback(async () => {
     setLoading(true);
-
-    let response: any;
     try {
+      let response: any;
       if (searchQuery) {
         response = await api.getFilesBySearch(searchQuery as string);
-        setPageName(`Search results for "${searchQuery}"`);
+        setPageName(""); // בחיפוש אין כותרת
       } else if (category) {
         response = await api.getFilesByCategory(category as string);
-        setPageName(categoryToName(category as string));
+        // פונקציית עזר לשם הקטגוריה
+        const names: any = { all: 'Home', 'my-drive': 'My Drive', 'recent': 'Recent', 'starred': 'Starred', 'bin': 'Trash' };
+        setPageName(names[category as string] || 'Home');
       } else if (folderId) {
         response = await api.getFileById(folderId as string);
       } else {
-        // ברירת מחדל במידה ואין פרמטרים - טעינת דף הבית
         response = await api.getFilesByCategory('all');
-        setPageName(categoryToName('all'));
+        setPageName("Home");
       }
 
-      // טיפול בתגובות השרת לפי הלוגיקה של הווב
-      if (response && (response.ok || response.status === 200)) {
-        const data = response.json ? await response.json() : response;
-        
+      if (response && response.ok) {
+        const data = await response.json();
         if (folderId) {
           setFiles(data.sub_filedirs || []);
-          setPageName(data.name || 'Folder');
+          setPageName(data.name);
           setParentId(data.parent_id);
         } else {
           setFiles(Array.isArray(data) ? data : []);
-          // אם אנחנו בקטגוריה, נוודא שהשם מעודכן
-          if (category) setPageName(categoryToName(category as string));
         }
-      } else if (response.status === 401) {
-        // בדומה ל-localStorage.clear() וניווט להתחלה
-        router.replace('/' as any);
-      } else if (response.status === 403) {
-        Alert.alert('Permission', "You don't have permission to access this folder.");
-        router.replace('/drive/all' as any);
-      } else {
-        const data = response.json ? await response.json() : response;
-        Alert.alert('Error', `${data?.error || 'Unknown error'}`);
-        router.replace('/drive/all' as any);
       }
-    } catch (error) {
-      console.error("Workspace fetch error:", error);
-      setPageName("Unknown");
+    } catch (e) {
+      console.error(e);
+      setFiles([]);
     } finally {
       setLoading(false);
     }
-  }, [category, searchQuery, folderId]);
+  }, [category, searchQuery, folderId, refreshSignal, externalRefresh]);
 
-  // רענון בשינוי פרמטרים או סיגנל חיצוני
-  useEffect(() => {
-    fetchWorkspaceData();
-  }, [fetchWorkspaceData, refreshSignal]);
-
-  const handleBack = () => {
-    if (parentId) {
-      // ניווט לתיקיית האב
-      router.push(`/drive/directories/${parentId}` as any);
-    } else {
-      // אם אין הורה, חזרה למיי דרייב
-      router.push('/drive/my-drive' as any);
-    }
-  };
+  useEffect(() => { fetchWorkspaceData(); }, [fetchWorkspaceData]);
 
   const viewMode = isLineView ? 'line' : 'box';
 
   return (
     <SafeAreaView style={styles.container}>
-      
-      {/* --- Header --- */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {/* בחיפוש לא מציגים כותרת או חץ אחורה (לפי הווב) */}
           {!searchQuery && (
             <>
               {folderId && (
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                   <MaterialIcons name="arrow-back" size={26} color="#5f6368" />
                 </TouchableOpacity>
               )}
-              <Text 
-                style={styles.title} 
-                numberOfLines={1} 
-                ellipsizeMode="tail"
-              >
-                {pageName}
-              </Text>
+              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{pageName}</Text>
             </>
           )}
         </View>
-
-        {/* סוויץ' החלפת תצוגה */}
         <View style={styles.viewSwitcher}>
-          <TouchableOpacity 
-            style={[styles.switchBtn, isLineView && styles.switchBtnActive]} 
-            onPress={() => setIsLineView(true)}
-          >
-             <MaterialIcons 
-               name="format-list-bulleted" 
-               size={28} 
-               color={isLineView ? "#1a73e8" : "#5f6368"} 
-             />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.switchBtn, !isLineView && styles.switchBtnActive]} 
-            onPress={() => setIsLineView(false)}
-          >
-             <MaterialIcons 
-               name="grid-view" 
-               size={28} 
-               color={!isLineView ? "#1a73e8" : "#5f6368"} 
-             />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive]}>
+                <MaterialIcons name="format-list-bulleted" size={28} color={isLineView ? "#1a73e8" : "#5f6368"} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive]}>
+                <MaterialIcons name="grid-view" size={28} color={!isLineView ? "#1a73e8" : "#5f6368"} />
+            </TouchableOpacity>
         </View>
       </View>
 
-      {/* --- תוכן הקבצים --- */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#1a73e8" />
-          <Text style={{marginTop: 10, color: '#5f6368'}}>Loading files...</Text>
-        </View>
+        <View style={styles.centerContainer}><ActivityIndicator size="large" color="#1a73e8" /></View>
       ) : (
-        <View style={styles.contentContainer}>
-            <ListFileItems 
-                files={files} 
-                viewMode={viewMode} 
-                onRefresh={fetchWorkspaceData}
-                showFooter={!searchQuery}
-            />
+        <View style={{ flex: 1 }}>
+          <ListFileItems 
+            files={files} 
+            viewMode={viewMode} 
+            onRefresh={fetchWorkspaceData}
+            onScroll={handleScroll} // העברת פונקציית הגלילה
+          />
+
+          {!searchQuery && (
+            <Animated.View style={[styles.fab, { opacity: fabOpacity }]}>
+              <TouchableOpacity onPress={() => setIsMenuOpen(true)}>
+                <Image source={PLUS_ICON} style={styles.fabIcon} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </View>
       )}
 
+      {/* תפריט "חדש" (Modal) */}
+      <Modal visible={isMenuOpen} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setIsMenuOpen(false)}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <MenuOption label="העלאת קובץ" icon="upload" onPress={() => handleFileUpload('file')} />
+            <MenuOption label="צילום תמונה" icon="camera-alt" onPress={() => {}} />
+            <MenuOption label="יצירת תיקייה" icon="create-new-folder" onPress={handleCreateFolder} />
+            <View style={styles.menuDivider} />
+            <MenuOption label="Google Docs" icon="description" color="#4285F4" onPress={() => {}} />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
+
+// קומפוננטת עזר לאופציות בתפריט
+const MenuOption = ({ label, icon, onPress, color = "#5f6368" }: any) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <View style={styles.menuIconContainer}>
+        <MaterialIcons name={icon} size={24} color={color} />
+    </View>
+    <Text style={styles.menuText}>{label}</Text>
+  </TouchableOpacity>
+);
 
 export default FileDisplay;

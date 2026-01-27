@@ -1,12 +1,8 @@
 import React from 'react';
-import { View, FlatList, Image } from 'react-native';
-// שימי לב: זה מייבא את הסטייל של הרשימה (קובץ מספר 3 למטה)
+import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './styles';
-
-// ייבוא הקומפוננטה הפנימית
 import BoxFileItem from './BoxFileItem'; 
 
-// תמונת "תיקייה ריקה" - תוודאי שהנתיב נכון אצלך!
 const EMPTY_FOLDER_IMG = require('@/assets/images/empty_folder-removebg.png');
 
 interface FileData {
@@ -24,36 +20,43 @@ interface ListBoxFileItemsProps {
   files: FileData[] | null | undefined;
   showFooter?: boolean;
   onAction: (actionName: string, file: FileData) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
-const ListBoxFileItems = ({ files, showFooter = true, onAction }: ListBoxFileItemsProps) => {
+// 1. הוספתי את onScroll כאן ב-Destructuring
+const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: ListBoxFileItemsProps) => {
 
-  // --- מצב 1: אין קבצים (Empty State) ---
-  if (!files || files.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Image 
-          source={EMPTY_FOLDER_IMG} 
-          style={styles.emptyImage} 
-          resizeMode="contain"
-        />
-      </View>
-    );
-  }
+  // פונקציה פנימית לרינדור מצב ריק בתוך ה-FlatList
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Image 
+        source={EMPTY_FOLDER_IMG} 
+        style={styles.emptyImage} 
+        resizeMode="contain"
+      />
+    </View>
+  );
 
-  // --- מצב 2: יש קבצים (Grid List) ---
   return (
     <View style={styles.container}>
       <FlatList
-        data={files}
+        data={files || []}
+        // 2. חיבור ה-onScroll
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        
+        // 3. שימוש ב-ListEmptyComponent במקום return מוקדם
+        // זה מבטיח שה-FlatList תמיד קיים וה-onScroll תמיד מחובר
+        ListEmptyComponent={renderEmptyComponent}
+        
         keyExtractor={(item) => item.fid}
         numColumns={2}
-        contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.columnWrapper} // זה מה שמסדר אותם בשורה
+        contentContainerStyle={files && files.length > 0 ? styles.listContent : {flex: 1}}
+        columnWrapperStyle={files && files.length > 0 ? styles.columnWrapper : undefined}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <BoxFileItem 
-            fileData={item} // כאן העברת fileData (צריך לוודא שב-BoxFileItem זה תואם)
+            fileData={item}
             showFooter={showFooter}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}
