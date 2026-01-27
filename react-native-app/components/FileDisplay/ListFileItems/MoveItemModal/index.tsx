@@ -11,14 +11,13 @@ import {
   Image 
 } from 'react-native';
 import { styles } from './styles';
-// החזרנו את האימפורט של ה-API
 import { getFilesByDirectory, patchFile, getFilesBySearch, getFileById, getAllFiles } from '@/utilities/api'; 
 
-// --- תמונות (לפי הנתיבים שנתת) ---
-const FOLDER_ICON = require('../../assets/images/dir_logo.png');
-const BACK_ICON = require('../../assets/images/back_icon.png');
-const SEARCH_ICON = require('../../assets/images/search_icon.png');
-const CLOSE_ICON = require('../../assets/images/x_icon.png');
+// --- תמונות ---
+const FOLDER_ICON = require('@/assets/images/dir_logo.png'); // שיניתי ל-@ alias שהוא בטוח יותר
+const BACK_ICON = require('@/assets/images/back_icon.png');
+const SEARCH_ICON = require('@/assets/images/search_icon.png');
+const CLOSE_ICON = require('@/assets/images/x_icon.png');
 
 interface MoveFileModalProps {
   visible: boolean;
@@ -35,7 +34,7 @@ interface FolderItem {
   parent_id?: string | null;
 }
 
-const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: MoveFileModalProps) => {
+const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: MoveFileModalProps) => {
   const [currentPath, setCurrentPath] = useState<{fid: string, name: string}[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,7 +45,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. אתחול - קריאה לשרת + Fallback
+  // 1. אתחול
   useEffect(() => {
     if (visible && fileId) {
       const init = async () => {
@@ -71,7 +70,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           setCurrentPath([{ fid: parentId, name: startName }]);
 
         } catch (e) {
-          // Fallback חשוב: אם השרת למטה, מציגים את התיקייה הראשית
           console.log("Server down or init failed -> Fallback to Root");
           setOriginParentId('root');
           setOriginParentName('My Drive');
@@ -86,7 +84,7 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     ? currentPath[currentPath.length - 1] 
     : { fid: 'root', name: 'My Drive' };
 
-  // 2. טעינת תיקיות מהשרת
+  // 2. טעינת תיקיות
   const loadFolders = useCallback(async () => {
     if (!visible) return;
     setLoading(true);
@@ -217,7 +215,6 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
               </View>
             </View>
           ) : (
-            // Search Overlay
             <View style={styles.searchContainer}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
                   <Image source={BACK_ICON} style={styles.backIconImage} />
@@ -279,4 +276,4 @@ const MoveFileModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   );
 };
 
-export default MoveFileModal;
+export default MoveItemModal;

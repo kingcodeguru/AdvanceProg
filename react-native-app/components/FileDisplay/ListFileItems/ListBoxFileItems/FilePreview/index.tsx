@@ -1,10 +1,10 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-const TEXT_IMG = require('../../../assets/images/Liel-Text.png');
-const FOLDER_IMG = require('../../../assets/images/Tamar-Folder.png');
-const IMAGE_IMG = require('../../../assets/images/Orel-Image.png');
-const DEFAULT_IMG = require('../../../assets/images/Liel-Text.png'); 
+const TEXT_IMG = require('@/assets/images/Liel-Text.png');
+const FOLDER_IMG = require('@/assets/images/Tamar-Folder.png');
+const IMAGE_IMG = require('@/assets/images/Orel-Image.png');
+const DEFAULT_IMG = require('@/assets/images/Liel-Text.png'); 
 
 interface FilePreviewProps {
   type: string;

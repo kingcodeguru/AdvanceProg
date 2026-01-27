@@ -14,7 +14,6 @@ export const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-
   cardContainer: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -24,21 +23,20 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
-
-  // --- התיקון הסופי ---
+  
+  // --- תיקון לתמונה (בעיה 5) ---
   previewArea: {
     flex: 1, 
     backgroundColor: '#f8f9fa', 
-    
-    // ממרכז אופקית ואנכית
     justifyContent: 'center', 
     alignItems: 'center',
-    
     width: '100%',
-    padding: 0, // התמונה תיגע בקצוות
+    padding: 20, // הוספתי פדינג כדי שהתמונה לא תיגע בקצוות אבל תהיה גדולה
   },
+  // הוספתי סטייל ספציפי לתמונה בתוך previewArea אם צריך, 
+  // אבל הסטייל הזה שולט על הקונטיינר שלה.
+  // אם התמונה עצמה מוגדרת בקומפוננטה, וודאי שהיא resizeMode="contain"
 
-  // --- Footer ---
   footerArea: {
     height: 52, 
     flexDirection: 'row', 
@@ -48,14 +46,12 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f5f5f5',
   },
-
   smallTypeIcon: {
     width: 18,
     height: 18,
     resizeMode: 'contain',
     marginRight: 8, 
   },
-
   fileTitleContainer: {
     flex: 1, 
     marginRight: 8,
@@ -67,7 +63,6 @@ export const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'left',
   },
-
   actionBtn: {
     width: 32, 
     height: 32,
@@ -76,7 +71,6 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f1f3f4', 
     borderRadius: 8, 
   },
-  
   actionMenuText: {
     fontSize: 18, 
     color: '#444', 

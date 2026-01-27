@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginRight: 10, // הרווח המתוקן
+    marginRight: 10,
     marginLeft: -8,
   },
   backIconImage: {
@@ -61,7 +61,7 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   actionIconImage: {
-    width: 34, // הגודל הגדול שביקשת
+    width: 34,
     height: 34,
     resizeMode: 'contain',
     opacity: 0.6, 
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
   // --- List Content ---
   listContent: {
     paddingBottom: 90,
-    paddingTop: 16, // הרווח העליון שביקשת
+    paddingTop: 16,
   },
   folderItem: {
     flexDirection: 'row',

@@ -6,14 +6,14 @@ import { styles } from './styles';
 import LineFileItem from './LineFileItem'; 
 
 // תמונת "תיקייה ריקה"
-const EMPTY_FOLDER_IMG = require('../../assets/images/empty_folder-removebg.png');
+const EMPTY_FOLDER_IMG = require('@/assets/images/empty_folder-removebg.png');
 
 interface FileData {
   fid: string;
   name: string;
   type: string;
   starred: boolean;
-  last_modified: string | number;
+  last_modified: string | number; 
   owner_avatar?: string | null;
   previewUrl?: string | null;
   trashed?: boolean;

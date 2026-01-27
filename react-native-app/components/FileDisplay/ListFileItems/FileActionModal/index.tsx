@@ -18,20 +18,20 @@ import { getRole, getFileById } from '@/utilities/api';
 // שימי לב: אם הנתיב אצלך הוא לא @, תשני ל- '../../utilities/api'
 
 // --- תמונות ---
-const ICON_OPEN = require('../../assets/images/open_icon.png');
-const ICON_DOWNLOAD = require('../../assets/images/download_icon.png');
-const ICON_RENAME = require('../../assets/images/rename_icon.png');
-const ICON_SHARE = require('../../assets/images/share_person_icon.png');
-const ICON_LINK = require('../../assets/images/link_icon.png');
-const ICON_MOVE = require('../../assets/images/move_folder_icon.png');
-const ICON_STAR_ADD = require('../../assets/images/star_outline.png');
-const ICON_STAR_REMOVE = require('../../assets/images/star_filled.png');
-const ICON_DELETE = require('../../assets/images/remove_icon.png');
-const ICON_RESTORE = require('../../assets/images/restore_icon.png');
+const ICON_OPEN = require('@/assets/images/open_icon.png');
+const ICON_DOWNLOAD = require('@/assets/images/download_icon.png');
+const ICON_RENAME = require('@/assets/images/rename_icon.png');
+const ICON_SHARE = require('@/assets/images/share_person_icon.png');
+const ICON_LINK = require('@/assets/images/link_icon.png');
+const ICON_MOVE = require('@/assets/images/move_folder_icon.png');
+const ICON_STAR_ADD = require('@/assets/images/star_outline.png');
+const ICON_STAR_REMOVE = require('@/assets/images/star_filled.png');
+const ICON_DELETE = require('@/assets/images/remove_icon.png');
+const ICON_RESTORE = require('@/assets/images/restore_icon.png');
 
-const ICON_DOC = require('../../assets/images/docs_logo.png');
-const ICON_IMG = require('../../assets/images/picture_logo.png');
-const ICON_DIR = require('../../assets/images/dir_logo.png');
+const ICON_DOC = require('@/assets/images/docs_logo.png');
+const ICON_IMG = require('@/assets/images/picture_logo.png');
+const ICON_DIR = require('@/assets/images/dir_logo.png');
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

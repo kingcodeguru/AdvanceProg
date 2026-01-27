@@ -1,126 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  ActivityIndicator,
-  StatusBar
-} from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { useRouter } from 'expo-router';
 
-// הייבוא של הרכיב הראשי שלך
-import ListFileItems from '@/components/ListFileItems';
-
-// --- נתונים פיקטיביים לבדיקה (Mock Data) ---
-const MOCK_FILES = [
-  { 
-    fid: '1', 
-    name: 'Vacation Photos', 
-    type: 'directory', 
-    starred: false, 
-    last_modified: Date.now(), 
-    trashed: false 
-  },
-  { 
-    fid: '2', 
-    name: 'Project_Specs.pdf', 
-    type: 'text', 
-    starred: true, 
-    last_modified: Date.now() - 3600000, 
-    trashed: false 
-  },
-  { 
-    fid: '3', 
-    name: 'Selfie.jpg', 
-    type: 'image', 
-    starred: false, 
-    last_modified: Date.now() - 86400000, 
-    trashed: false 
-  },
-  { 
-    fid: '4', 
-    name: 'Work Documents', 
-    type: 'directory', 
-    starred: true, 
-    last_modified: Date.now() - 100000000, 
-    trashed: false 
-  },
-  { 
-    fid: '5', 
-    name: 'Old Backup', 
-    type: 'directory', 
-    starred: false, 
-    last_modified: Date.now() - 500000000, 
-    trashed: true // קובץ באשפה לבדיקת מחיקה לצמיתות
-  },
-];
-
-export default function DriveTestScreen() {
-  
-  // 1. ניהול מצב התצוגה (גריד או רשימה)
-  const [viewMode, setViewMode] = useState<'box' | 'line'>('box');
-  
-  // 2. ניהול הקבצים
-  const [files, setFiles] = useState<any[]>(MOCK_FILES);
-  const [loading, setLoading] = useState(false);
-
-  // פונקציה שמדמה "רענון" מהשרת
-  const handleRefresh = async () => {
-    setLoading(true);
-    console.log("Refreshing data...");
-    
-    // כאן בעתיד תהיה קריאה לשרת: await getFilesByDirectory(...)
-    // כרגע נדמה השהיה קטנה
-    setTimeout(() => {
-      setLoading(false);
-      // הערה: בגלל שאנחנו בבדיקה ללא שרת אמיתי, הפעולות (מחיקה/שינוי שם)
-      // ייכשלו בתוך ListFileItems כי ה-API יחזיר שגיאה.
-      // אבל זה מוכיח שהאינטראקציה עובדת!
-    }, 1000);
-  };
+export default function HomeScreen() {
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
-      {/* --- Header --- */}
-      <View style={styles.header}>
-        <Text style={styles.title}>My Drive</Text>
+      <ScrollView contentContainerStyle={styles.content}>
         
-        {/* כפתור החלפת תצוגה */}
+        <Text style={styles.title}>Dev Dashboard 🛠️</Text>
+        <Text style={styles.subtitle}>Choose a component to test:</Text>
+
+        {/* --- כפתור חדש: בדיקת FileDisplay --- */}
         <TouchableOpacity 
-          style={styles.toggleBtn} 
-          onPress={() => setViewMode(prev => prev === 'box' ? 'line' : 'box')}
+          style={styles.card} 
+          onPress={() => router.push('/test-menu' as any)}
         >
-          {/* אייקון פשוט להמחשה */}
-          <Text style={styles.toggleText}>
-            {viewMode === 'box' ? 'Show List ≣' : 'Show Grid ⊞'}
-          </Text>
+          <View style={styles.iconContainer}>
+            <Text style={styles.icon}>📂</Text>
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.cardTitle}>Test File Display</Text>
+            <Text style={styles.cardSub}>
+              Checks: Navigation, View Modes (Grid/List), Header, Params
+            </Text>
+          </View>
+          <Text style={styles.arrow}>→</Text>
         </TouchableOpacity>
-      </View>
 
-      {/* --- Main Content --- */}
-      <View style={styles.content}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#1a73e8" style={{ marginTop: 50 }} />
-        ) : (
-          <ListFileItems 
-            files={files}
-            viewMode={viewMode}
-            onRefresh={handleRefresh}
-            showFooter={true}
-          />
-        )}
-      </View>
+        {/* --- כפתור ישן: בדיקת UI כללית (אם שמרת אותו) --- */}
+        {/* אפשר להוסיף כאן עוד כפתורים בעתיד */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            Current Environment: Dev
+          </Text>
+        </View>
 
-      {/* --- Footer Info (רק לבדיקות) --- */}
-      <View style={styles.debugFooter}>
-        <Text style={styles.debugText}>
-          Current View: {viewMode.toUpperCase()} | Files: {files.length}
-        </Text>
-      </View>
-
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -128,47 +45,73 @@ export default function DriveTestScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#202124',
-  },
-  toggleBtn: {
-    backgroundColor: '#f1f3f4',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#5f6368',
+    backgroundColor: '#F8F9FA',
   },
   content: {
-    flex: 1,
-    backgroundColor: '#fff',
+    padding: 20,
   },
-  debugFooter: {
-    padding: 10,
-    backgroundColor: '#f8f9fa',
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#202124',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#5F6368',
+    marginBottom: 24,
+  },
+  card: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  debugText: {
+  iconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#E8F0FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  icon: {
+    fontSize: 24,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#202124',
+    marginBottom: 4,
+  },
+  cardSub: {
+    fontSize: 13,
+    color: '#5F6368',
+    lineHeight: 18,
+  },
+  arrow: {
+    fontSize: 24,
+    color: '#DADCE0',
+    fontWeight: 'bold',
+  },
+  infoBox: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  infoText: {
+    color: '#BDC1C6',
     fontSize: 12,
-    color: '#999',
   },
 });

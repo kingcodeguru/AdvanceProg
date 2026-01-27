@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, FlatList, Image } from 'react-native';
+// שימי לב: זה מייבא את הסטייל של הרשימה (קובץ מספר 3 למטה)
 import { styles } from './styles';
 
 // ייבוא הקומפוננטה הפנימית
 import BoxFileItem from './BoxFileItem'; 
 
-// תמונת "תיקייה ריקה"
-const EMPTY_FOLDER_IMG = require('../../assets/images/empty_folder-removebg.png');
+// תמונת "תיקייה ריקה" - תוודאי שהנתיב נכון אצלך!
+const EMPTY_FOLDER_IMG = require('@/assets/images/empty_folder-removebg.png');
 
 interface FileData {
   fid: string;
@@ -36,7 +37,6 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction }: ListBoxFileIte
           style={styles.emptyImage} 
           resizeMode="contain"
         />
-        {/* מחקנו את הטקסט No files found */}
       </View>
     );
   }
@@ -49,11 +49,11 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction }: ListBoxFileIte
         keyExtractor={(item) => item.fid}
         numColumns={2}
         contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.columnWrapper}
+        columnWrapperStyle={styles.columnWrapper} // זה מה שמסדר אותם בשורה
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <BoxFileItem 
-            fileData={item}
+            fileData={item} // כאן העברת fileData (צריך לוודא שב-BoxFileItem זה תואם)
             showFooter={showFooter}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}

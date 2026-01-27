@@ -13,8 +13,8 @@ import { patchFile, deleteFile, setStar, getFileById } from '@/utilities/api';
 import ListBoxFileItems from './ListBoxFileItems';
 import ListLineFileItems from './ListLineFileItems';
 import FileActionModal from './FileActionModal'; 
-import RenameModal from './RenameModal/index'; 
-import MoveFileModal from './MoveFileModal/index'; 
+import RenameModal from './RenameFileModal'; 
+import MoveFileModal from './MoveItemModal'; 
 
 interface ListFileItemsProps {
   files: any[];
