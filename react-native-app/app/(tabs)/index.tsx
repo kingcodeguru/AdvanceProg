@@ -1,130 +1,125 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
   Text, 
   SafeAreaView, 
   TouchableOpacity, 
-  Alert 
+  ActivityIndicator,
+  StatusBar
 } from 'react-native';
 
-// הייבוא של הרכיבים שלך
-import ListLineFileItems from '@/components/ListLineFileItems';
-import FileActionModal from '@/components/FileActionModal';
+// הייבוא של הרכיב הראשי שלך
+import ListFileItems from '@/components/ListFileItems';
 
-// --- נתונים פיקטיביים ---
+// --- נתונים פיקטיביים לבדיקה (Mock Data) ---
 const MOCK_FILES = [
   { 
-    fid: '101', 
-    name: 'Project Proposal.docx', 
-    type: 'text', 
-    starred: false, 
-    last_modified: Date.now(), // עכשיו
-  },
-  { 
-    fid: '102', 
-    name: 'Design Assets', 
+    fid: '1', 
+    name: 'Vacation Photos', 
     type: 'directory', 
-    starred: true, 
-    last_modified: Date.now() - 86400000, // לפני יום
+    starred: false, 
+    last_modified: Date.now(), 
+    trashed: false 
   },
   { 
-    fid: '103', 
-    name: 'Vacation_2025.jpg', 
+    fid: '2', 
+    name: 'Project_Specs.pdf', 
+    type: 'text', 
+    starred: true, 
+    last_modified: Date.now() - 3600000, 
+    trashed: false 
+  },
+  { 
+    fid: '3', 
+    name: 'Selfie.jpg', 
     type: 'image', 
     starred: false, 
-    last_modified: Date.now() - 172800000, // לפני יומיים
+    last_modified: Date.now() - 86400000, 
+    trashed: false 
   },
   { 
-    fid: '104', 
-    name: 'Budget_Q1.pdf', 
-    type: 'text', 
+    fid: '4', 
+    name: 'Work Documents', 
+    type: 'directory', 
     starred: true, 
-    last_modified: Date.now() - 604800000, // לפני שבוע
+    last_modified: Date.now() - 100000000, 
+    trashed: false 
   },
   { 
-    fid: '105', 
-    name: 'Old_Backup_Folder', 
+    fid: '5', 
+    name: 'Old Backup', 
     type: 'directory', 
     starred: false, 
-    last_modified: Date.now() - 2592000000, // לפני חודש
+    last_modified: Date.now() - 500000000, 
+    trashed: true // קובץ באשפה לבדיקת מחיקה לצמיתות
   },
 ];
 
-export default function ListLineTestScreen() {
+export default function DriveTestScreen() {
   
-  // 1. ניהול הקבצים (כדי שנוכל לרוקן ולמלא)
-  const [currentFiles, setCurrentFiles] = useState(MOCK_FILES);
+  // 1. ניהול מצב התצוגה (גריד או רשימה)
+  const [viewMode, setViewMode] = useState<'box' | 'line'>('box');
   
-  // 2. ניהול המודל
-  const [selectedFileForMenu, setSelectedFileForMenu] = useState<any>(null);
+  // 2. ניהול הקבצים
+  const [files, setFiles] = useState<any[]>(MOCK_FILES);
+  const [loading, setLoading] = useState(false);
 
-  // כפתור לבדיקת מצב "תיקייה ריקה"
-  const toggleEmptyState = () => {
-    if (currentFiles.length > 0) {
-      setCurrentFiles([]); // רוקן
-    } else {
-      setCurrentFiles(MOCK_FILES); // מלא
-    }
-  };
-
-  // הנדלר שמקבל את הפעולות מהרשימה
-  const handleListAction = (action: string, file: any) => {
-    if (action === 'open') {
-      Alert.alert('File Clicked', `You opened: ${file.name}`);
-    } 
-    else if (action === 'menu') {
-      setSelectedFileForMenu(file); // פתיחת המודל
-    }
-  };
-
-  // הנדלר לפעולות בתוך המודל
-  const handleModalAction = (action: string) => {
-    console.log(`User selected: ${action} for file: ${selectedFileForMenu?.name}`);
+  // פונקציה שמדמה "רענון" מהשרת
+  const handleRefresh = async () => {
+    setLoading(true);
+    console.log("Refreshing data...");
     
-    if (action === 'delete') {
-      Alert.alert('Deleted', 'File removed from view');
-      setCurrentFiles(prev => prev.filter(f => f.fid !== selectedFileForMenu.fid));
-    }
-    
-    setSelectedFileForMenu(null); // סגירה
+    // כאן בעתיד תהיה קריאה לשרת: await getFilesByDirectory(...)
+    // כרגע נדמה השהיה קטנה
+    setTimeout(() => {
+      setLoading(false);
+      // הערה: בגלל שאנחנו בבדיקה ללא שרת אמיתי, הפעולות (מחיקה/שינוי שם)
+      // ייכשלו בתוך ListFileItems כי ה-API יחזיר שגיאה.
+      // אבל זה מוכיח שהאינטראקציה עובדת!
+    }, 1000);
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       
       {/* --- Header --- */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Drive (List)</Text>
+        <Text style={styles.title}>My Drive</Text>
         
-        {/* כפתור בדיקה */}
-        <TouchableOpacity style={styles.testBtn} onPress={toggleEmptyState}>
-          <Text style={styles.testBtnText}>
-            {currentFiles.length > 0 ? "Test Empty" : "Test Full"}
+        {/* כפתור החלפת תצוגה */}
+        <TouchableOpacity 
+          style={styles.toggleBtn} 
+          onPress={() => setViewMode(prev => prev === 'box' ? 'line' : 'box')}
+        >
+          {/* אייקון פשוט להמחשה */}
+          <Text style={styles.toggleText}>
+            {viewMode === 'box' ? 'Show List ≣' : 'Show Grid ⊞'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* --- הרכיב הנבדק: ListLineFileItems --- */}
-      <View style={styles.listContainer}>
-        <ListLineFileItems 
-          files={currentFiles} 
-          onAction={handleListAction} 
-        />
+      {/* --- Main Content --- */}
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#1a73e8" style={{ marginTop: 50 }} />
+        ) : (
+          <ListFileItems 
+            files={files}
+            viewMode={viewMode}
+            onRefresh={handleRefresh}
+            showFooter={true}
+          />
+        )}
       </View>
 
-      {/* --- המודל הגלובלי --- */}
-      {selectedFileForMenu && (
-        <FileActionModal
-          visible={!!selectedFileForMenu}
-          onClose={() => setSelectedFileForMenu(null)}
-          fileID={selectedFileForMenu.fid}
-          fileName={selectedFileForMenu.name}
-          fileType={selectedFileForMenu.type}
-          isStarred={selectedFileForMenu.starred}
-          onAction={handleModalAction}
-        />
-      )}
+      {/* --- Footer Info (רק לבדיקות) --- */}
+      <View style={styles.debugFooter}>
+        <Text style={styles.debugText}>
+          Current View: {viewMode.toUpperCase()} | Files: {files.length}
+        </Text>
+      </View>
 
     </SafeAreaView>
   );
@@ -137,31 +132,43 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     backgroundColor: '#fff',
   },
-  headerTitle: {
-    fontSize: 20,
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#202124',
   },
-  testBtn: {
-    backgroundColor: '#e8f0fe',
-    paddingVertical: 6,
+  toggleBtn: {
+    backgroundColor: '#f1f3f4',
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-  testBtnText: {
-    color: '#1967d2',
+  toggleText: {
+    fontSize: 14,
     fontWeight: '600',
-    fontSize: 13,
+    color: '#5f6368',
   },
-  listContainer: {
-    flex: 1, // קריטי כדי שהרשימה תמלא את המסך
+  content: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  debugFooter: {
+    padding: 10,
+    backgroundColor: '#f8f9fa',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#999',
   },
 });
