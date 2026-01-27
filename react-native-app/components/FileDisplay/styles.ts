@@ -1,6 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
@@ -13,7 +11,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    height: 80, 
+    height: 70, 
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -24,72 +22,70 @@ export const styles = StyleSheet.create({
     marginRight: 15, 
   },
   title: {
-    fontSize: 22,
+    fontSize: 19, 
     fontWeight: '400',
     color: '#202124',
     flexShrink: 1, 
   },
   backButton: {
-    padding: 12,
+    padding: 10,
     marginRight: 4,
-    marginLeft: -12,
+    marginLeft: -10,
   },
   
-  // --- View Switcher (הסוויץ' המוגדל) ---
+  // --- View Switcher ---
   viewSwitcher: {
     flexDirection: 'row',
     backgroundColor: '#f1f3f4',
     borderRadius: 28, 
     padding: 4, 
-    height: 50, 
-    minWidth: 100,
+    height: 46, 
+    minWidth: 90,
     alignItems: 'center',
     justifyContent: 'center',
   },
   switchBtn: {
-    width: 46,
-    height: 42,
+    width: 42,
+    height: 38,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 21,
+    borderRadius: 19,
   },
   switchBtnActive: {
     backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 3,
   },
 
-  // --- Floating Action Button (FAB) ---
+  // --- Plus Button (FAB) - עיגול מושלם בצד ימין ---
   fab: {
     position: 'absolute',
     bottom: 30,
-    left: 20, // מיקום צד שמאל לפי התמונה
+    right: 20, 
     backgroundColor: '#fff',
-    width: 65,
-    height: 65,
-    borderRadius: 16, // עיצוב מרובע מעוגל (Google Style)
+    width: 60, 
+    height: 60,
+    borderRadius: 30, 
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
   fabIcon: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     resizeMode: 'contain',
   },
 
-  // --- Modal / BottomSheet Menu ---
+  // --- Modal / BottomSheet ---
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // החשכה של הרקע
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -97,9 +93,7 @@ export const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 12,
     paddingBottom: 40,
-    paddingHorizontal: 8,
     width: '100%',
-    elevation: 20,
   },
   modalHandle: {
     width: 40,
@@ -110,35 +104,31 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
   menuItem: {
-    flexDirection: 'row-reverse', // סידור לפי התמונה (טקסט מימין, אייקון משמאל)
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 16, // רווח בין האייקון לטקסט
+    marginRight: 16,
   },
   menuText: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#3c4043',
     flex: 1,
-    textAlign: 'right', // טקסט מיושר לימין (עברית)
+    textAlign: 'left',
   },
   menuDivider: {
     height: 1,
     backgroundColor: '#f1f3f4',
     marginVertical: 8,
-    marginHorizontal: 20,
+    marginHorizontal: 24,
   },
 
-  // --- Containers ---
-  contentContainer: {
-    flex: 1,
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
