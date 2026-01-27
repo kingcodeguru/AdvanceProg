@@ -1,107 +1,86 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const CARD_MARGIN = 6;
+const CARD_WIDTH = (width / 2) - (CARD_MARGIN * 3); 
 
 export const styles = StyleSheet.create({
-  // הקופסה החיצונית
-  boxFileWrapper: {
-    width: 160, // קצת יותר צר כדי שייכנסו שניים בשורה ברוב המסכים
-    margin: 8,
-    // צללית עדינה (Elevation לאנדרואיד, Shadow ל-iOS)
+  container: {
+    width: CARD_WIDTH,
+    margin: CARD_MARGIN,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  
-  // הכרטיס עצמו
-  customCardContainer: {
-    backgroundColor: '#fff', // במובייל בדרך כלל הרקע לבן, אפשר לשנות לפי Theme
-    borderRadius: 12,
-    height: 180, // הקטנתי קצת כדי שיתאים למובייל
+
+  cardContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    height: 190, 
     width: '100%',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#eee', // גבול עדין
+    borderColor: '#f0f0f0',
   },
 
-  // --- Header ---
-  cardHeaderArea: {
-    flexDirection: 'row',
+  // --- התיקון הסופי ---
+  previewArea: {
+    flex: 1, 
+    backgroundColor: '#f8f9fa', 
+    
+    // ממרכז אופקית ואנכית
+    justifyContent: 'center', 
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    height: 48,
+    
+    width: '100%',
+    padding: 0, // התמונה תיגע בקצוות
   },
-  headerContent: {
-    flexDirection: 'row',
+
+  // --- Footer ---
+  footerArea: {
+    height: 52, 
+    flexDirection: 'row', 
     alignItems: 'center',
-    flex: 1,
-    paddingRight: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#f5f5f5',
   },
-  fileIconSmall: {
+
+  smallTypeIcon: {
     width: 18,
     height: 18,
     resizeMode: 'contain',
+    marginRight: 8, 
+  },
+
+  fileTitleContainer: {
+    flex: 1, 
+    marginRight: 8,
+    justifyContent: 'center',
   },
   fileTitle: {
     fontSize: 13,
     fontWeight: '500',
     color: '#333',
-    marginLeft: 8,
-    flex: 1, // כדי שהטקסט יתפוס מקום ולא יחתך מיד
+    textAlign: 'left',
+  },
+
+  actionBtn: {
+    width: 32, 
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f1f3f4', 
+    borderRadius: 8, 
   },
   
-  // כפתור שלוש נקודות
-  actionBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionBtnIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#5f6368',
-    // ב-RN אי אפשר לשים טקסט ככה סתם, נשתמש ב-Image או Text
-  },
-
-  // --- Main Image Area ---
-  imageContainer: {
-    flex: 1, // תופס את כל המקום הפנוי
-    paddingHorizontal: 10,
-    paddingBottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-
-  // --- Footer ---
-  cardFooterArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f3f4',
-    height: 40,
-  },
-  userImgFooter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 6,
-  },
-  footerText: {
-    fontSize: 10,
-    color: '#5f6368',
-    flex: 1,
-  },
-  actionIconImage: { // אייקון שלוש נקודות (תמונה)
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-    opacity: 0.6, 
+  actionMenuText: {
+    fontSize: 18, 
+    color: '#444', 
+    fontWeight: 'bold', 
+    marginBottom: 6, 
   },
 });

@@ -1,93 +1,151 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
-import FileActionModal from '@/components/FileActionModal'; 
+import { StyleSheet, View, Text, SafeAreaView, FlatList, Alert } from 'react-native';
 
-export default function FileActionModalTest() {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [lastAction, setLastAction] = useState('None');
+// הייבוא של הרכיבים שלך
+import BoxFileItem from '@/components/BoxFileItem';
+import FileActionModal from '@/components/FileActionModal';
+
+// --- נתונים פיקטיביים לבדיקה ---
+const MOCK_FILES = [
+  { 
+    fid: '101', 
+    name: 'Summer Vacation', 
+    type: 'directory', 
+    starred: false, 
+    last_modified: Date.now(), 
+    owner_avatar: 'https://cdn-icons-png.flaticon.com/512/147/147144.png' 
+  },
+  { 
+    fid: '102', 
+    name: 'Profile_Pic.jpg', 
+    type: 'image', 
+    starred: true, 
+    last_modified: Date.now() - 10000000, 
+    owner_avatar: 'https://cdn-icons-png.flaticon.com/512/147/147144.png'
+  },
+  { 
+    fid: '103', 
+    name: 'Resume_Final.docx', 
+    type: 'text', 
+    starred: false, 
+    last_modified: Date.now() - 50000000,
+    owner_avatar: null 
+  },
+  { 
+    fid: '104', 
+    name: 'Project Specs.pdf', 
+    type: 'text', 
+    starred: true, 
+    last_modified: Date.now(),
+    owner_avatar: null 
+  },
+];
+
+export default function BoxFileItemTest() {
   
-  // State שמחזיק את נתוני הקובץ
-  const [testFile, setTestFile] = useState({
-    fid: '123',
-    name: 'Test_File.pdf',
-    type: 'text',
-    starred: false // --- שינוי: מתחיל בלי כוכב ---
-  });
+  // זה ה-State שמחזיק את הקובץ שנבחר כרגע לתפריט
+  // אם זה null -> המודל סגור
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
-  const handleOpenModal = (type: string, name: string) => {
-    // כשפותחים, אנחנו רק מעדכנים את הסוג והשם, ושומרים על מצב הכוכב הנוכחי
-    setTestFile(prev => ({ ...prev, type, name }));
-    setModalVisible(true);
+  // פתיחת קובץ (לחיצה רגילה)
+  const handleOpen = (file: any) => {
+    Alert.alert("Opening File", `Opening: ${file.name}`);
   };
 
-  const handleAction = (actionName: string) => {
-    console.log('Action:', actionName);
-    setLastAction(actionName);
+  // פתיחת תפריט (לחיצה על 3 נקודות)
+  const handleMenuPress = (file: any) => {
+    console.log("Opening menu for:", file.name);
+    setSelectedFile(file); // זה יגרום למודל להיפתח
+  };
 
-    // --- השינוי: לוגיקה לשינוי הכוכב בזמן אמת ---
-    if (actionName === 'add_star') {
-        setTestFile(prev => ({ ...prev, starred: true }));
-    } 
-    else if (actionName === 'remove_star') {
-        setTestFile(prev => ({ ...prev, starred: false }));
+  // ביצוע פעולה מהתפריט
+  const handleAction = (action: string) => {
+    console.log(`Action requested: ${action} on file: ${selectedFile?.name}`);
+    
+    // כאן תהיה הלוגיקה האמיתית שלך (מחיקה, שיתוף וכו')
+    // לדוגמה:
+    if (action === 'rename') {
+       Alert.alert("Action", "Rename clicked (Next step: Open Rename Modal)");
     }
+    
+    // סגירת המודל (למרות שהמודל סוגר את עצמו ויזואלית, צריך לאפס את ה-State)
+    setSelectedFile(null);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        
-        <Text style={styles.title}>בדיקת תפריט</Text>
-        
-        <View style={styles.statusBox}>
-          <Text style={styles.statusLabel}>סטטוס כוכב:</Text>
-          {/* מראה ויזואלית אם יש כוכב או אין */}
-          <Text style={{ fontSize: 20 }}>{testFile.starred ? '⭐ מסומן' : '☆ לא מסומן'}</Text>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => handleOpenModal('directory', 'My Projects')}
-        >
-          <Text style={styles.btnText}>תיקייה</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.button, styles.btnBlue]} 
-          onPress={() => handleOpenModal('image', 'Vacation.jpg')}
-        >
-          <Text style={styles.btnText}>תמונה</Text>
-        </TouchableOpacity>
-
-        <FileActionModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          onAction={handleAction}
-          fileID={testFile.fid}
-          fileName={testFile.name}
-          fileType={testFile.type}
-          isStarred={testFile.starred} // המודל מקבל את המצב המעודכן
-          isTrashed={false}
-        />
-
+      <View style={styles.header}>
+        <Text style={styles.title}>Box File Grid Test</Text>
+        <Text style={styles.subtitle}>לחיצה ארוכה או 3 נקודות לתפריט</Text>
       </View>
+
+      {/* רשימת הקבצים */}
+      <FlatList
+        data={MOCK_FILES}
+        keyExtractor={(item) => item.fid}
+        numColumns={2} // תצוגת גריד (זוגות)
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => (
+          <BoxFileItem 
+            fileData={item}
+            
+            // 1. לחיצה רגילה
+            onPress={() => handleOpen(item)}
+            
+            // 2. לחיצה על תפריט -> מעדכנים את האבא (אותנו)
+            onMenuPress={() => handleMenuPress(item)}
+          />
+        )}
+      />
+
+      {/* המודל היחיד והמיוחד!
+         הוא חי מחוץ לרשימה, ונפתח רק כשיש selectedFile.
+      */}
+      {selectedFile && (
+        <FileActionModal
+          visible={!!selectedFile} // אם יש קובץ, תציג true
+          onClose={() => setSelectedFile(null)} // סגירה מאפסת את הבחירה
+          
+          // העברת הנתונים של הקובץ הנבחר למודל
+          fileID={selectedFile.fid}
+          fileName={selectedFile.name}
+          fileType={selectedFile.type}
+          isStarred={selectedFile.starred}
+          isTrashed={false}
+          
+          onAction={handleAction}
+        />
+      )}
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
-  statusBox: { 
-    backgroundColor: '#fff', padding: 15, borderRadius: 8, width: '100%', 
-    alignItems: 'center', marginBottom: 30, borderWidth: 1, borderColor: '#ddd' 
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
   },
-  statusLabel: { fontSize: 14, color: '#888' },
-  button: { 
-    backgroundColor: '#5f6368', padding: 12, borderRadius: 8, width: '80%', 
-    alignItems: 'center', marginBottom: 15 
+  header: {
+    padding: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    alignItems: 'center',
   },
-  btnBlue: { backgroundColor: '#1a73e8' },
-  btnText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+  },
+  listContent: {
+    padding: 10,
+    // זה עוזר ליישר את הגריד אם יש רווחים
+    alignItems: 'flex-start', 
+  },
 });

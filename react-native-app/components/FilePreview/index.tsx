@@ -1,13 +1,9 @@
 import React from 'react';
-import { Image, View } from 'react-native';
-import { styles } from './styles';
+import { Image, StyleSheet, View } from 'react-native';
 
-// טעינת התמונות מראש (Pre-load)
-// תוודאי שהשמות והנתיבים תואמים לקבצים אצלך!
 const TEXT_IMG = require('../../assets/images/Liel-Text.png');
 const FOLDER_IMG = require('../../assets/images/Tamar-Folder.png');
 const IMAGE_IMG = require('../../assets/images/Orel-Image.png');
-// הוספתי דיפולט למקרה שיגיע טייפ לא מוכר
 const DEFAULT_IMG = require('../../assets/images/Liel-Text.png'); 
 
 interface FilePreviewProps {
@@ -16,11 +12,10 @@ interface FilePreviewProps {
 
 const FilePreview = ({ type }: FilePreviewProps) => {
   
-  // פונקציה פשוטה שבוחרת את התמונה לפי הטייפ
   const getImageSource = () => {
     switch (type) {
       case 'image':
-      case 'img': // למקרה שזה מגיע ככה מהשרת
+      case 'img': 
         return IMAGE_IMG;
       case 'directory':
       case 'dir':
@@ -35,12 +30,34 @@ const FilePreview = ({ type }: FilePreviewProps) => {
   };
 
   return (
-    <Image 
-      source={getImageSource()} 
-      style={styles.previewImage}
-      resizeMode="cover" // זה המקביל ל-object-fit: cover ב-CSS
-    />
+    <View style={styles.container}>
+      <Image 
+        source={getImageSource()} 
+        style={styles.image}
+        // חשוב: לא משתמשים ב-resizeMode כאן, נותנים לסטייל לשלוט
+      />
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden', 
+    // התיקון: מצמיד את התמונה למעלה (התחלה) במקום לאמצע
+    justifyContent: 'flex-start', 
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  image: {
+    width: '100%',
+    // התיקון: גובה לא מוגדר + יחס גובה-רוחב 
+    // זה גורם לתמונה לתפוס את כל הרוחב ולהתחיל מלמעלה
+    height: undefined, 
+    aspectRatio: 1, // ברירת מחדל לריבוע, אבל זה יתמלא לפי התמונה
+    resizeMode: 'cover', // מוודא מילוי
+  },
+});
 
 export default FilePreview;
