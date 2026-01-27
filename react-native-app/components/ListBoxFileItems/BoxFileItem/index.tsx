@@ -9,9 +9,9 @@ import {
 import { styles } from './styles';
 import FilePreview from '../FilePreview';
 
-const DOC_ICON = require('../../assets/images/docs_logo.png');
-const PIC_ICON = require('../../assets/images/picture_logo.png');
-const DIR_ICON = require('../../assets/images/dir_logo.png');
+const DOC_ICON = require('../../../assets/images/docs_logo.png');
+const PIC_ICON = require('../../../assets/images/picture_logo.png');
+const DIR_ICON = require('../../../assets/images/dir_logo.png');
 
 interface FileData {
   fid: string;
