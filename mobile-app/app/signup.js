@@ -15,7 +15,7 @@ import {
 import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
 import * as api from '../utilities/api'; 
 import Themes from '../styles/themes'; // <--- 2. Import Themes
