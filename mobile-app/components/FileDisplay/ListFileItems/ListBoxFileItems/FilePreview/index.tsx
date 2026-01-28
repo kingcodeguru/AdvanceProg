@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
     // התיקון: מצמיד את התמונה למעלה (התחלה) במקום לאמצע
     justifyContent: 'flex-start', 
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
   },
   image: {
     width: '100%',
