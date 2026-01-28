@@ -161,7 +161,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         onMoveSuccess();
         onClose();
       } else {
-        alert("Failed to move");
+        alert(`Failed to move - ${(await res?.json()).error || "Unknown error"}`);
       }
     } catch (error) {
       console.error(error);

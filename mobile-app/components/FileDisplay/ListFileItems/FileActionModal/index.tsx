@@ -171,20 +171,16 @@ const FileActionModal = ({
         <View style={styles.overlay}>
           
           <TouchableWithoutFeedback>
-            {/* 3. Apply Dynamic Background to Modal Container */}
             <Animated.View 
               style={[
                 styles.modalContainer, 
                 { backgroundColor: theme.bgForm, transform: [{ translateY: slideAnim }] }
               ]}
             >
-              {/* Dynamic Handle Color */}
               <View style={[styles.dragHandle, { backgroundColor: theme.borderSubtle }]} />
 
               <View style={styles.headerContainer}>
-                 {/* File Logos usually retain their original colors (don't tint) */}
                  <Image source={getHeaderIcon()} style={styles.headerIcon} />
-                 {/* Dynamic Title Color */}
                  <Text style={[styles.headerTitle, { color: theme.textMain }]} numberOfLines={1}>
                     {fileName}
                  </Text>
@@ -218,7 +214,6 @@ const FileActionModal = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Dynamic Divider */}
                   <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
 
                   {can_change_permissions(fileRole) && (

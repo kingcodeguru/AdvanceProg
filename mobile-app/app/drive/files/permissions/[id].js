@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
     getMyDetails, 
     getFilePermissions, 
-    addPermission, 
+    addFilePermission, 
     updatePermission, 
     removePermission,
     getFileById
@@ -164,7 +164,7 @@ export default function PermissionsScreen() {
         if (!newEmail.trim()) return;
 
         try {
-            const response = await addPermission(id, newEmail, newRole);
+            const response = await addFilePermission(id, newEmail, newRole);
             if (response.ok) {
                 Alert.alert("Success", "User added successfully.");
                 setNewEmail('');
@@ -173,7 +173,7 @@ export default function PermissionsScreen() {
                 Alert.alert("Error", "Failed to add user. Check email or permissions.");
             }
         } catch (error) {
-            Alert.alert("Error", "Network error while adding user.");
+            Alert.alert("Error", `Network error while adding user: ${error.message}`);
         }
     };
 

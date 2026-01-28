@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
   // --- תיקון לתמונה (בעיה 5) ---
   previewArea: {
     flex: 1, 
-    backgroundColor: '#f8f9fa', 
+    backgroundColor: 'transparent', 
     justifyContent: 'center', 
     alignItems: 'center',
     width: '100%',

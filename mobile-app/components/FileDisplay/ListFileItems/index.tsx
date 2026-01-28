@@ -12,16 +12,16 @@ import { patchFile, deleteFile, setStar, getFileById } from '@/utilities/api';
 // Components Imports
 import ListBoxFileItems from './ListBoxFileItems';
 import ListLineFileItems from './ListLineFileItems';
-import FileActionModal from './FileActionModal'; 
-import RenameModal from './RenameFileModal'; 
-import MoveFileModal from './MoveItemModal'; 
+import FileActionModal from './FileActionModal';
+import RenameFileModal from './RenameFileModal'; 
+import MoveItemModal from './MoveItemModal'; 
 
 interface ListFileItemsProps {
   files: any[];
   viewMode: 'box' | 'line';
   onRefresh: () => void;
   showFooter?: boolean;
-  onScroll?: (event: any) => void; // <-- הוספת ה-Prop כאן
+  onScroll?: (event: any) => void;
 }
 
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
@@ -34,8 +34,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-
-  // ... (כל הלוגיקה של handleRenameSubmit, toggleStar, deleteAction נשארת זהה)
 
   // --- Logic: Rename ---
   const handleRenameSubmit = async (newName: string) => {
@@ -157,6 +155,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
 
     setTimeout(async () => {
       switch (actionName) {
+        case 'open': handleListSignal('open', selectedFile); break;
         case 'rename': setIsRenameModalOpen(true); break;
         case 'move': setIsMoveModalOpen(true); break;
         case 'add_star': await toggleStar(selectedFile, true); break;
@@ -169,8 +168,14 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
             if (response.ok && onRefresh) onRefresh();
           } catch (e) { console.error(e); }
           break;
+        case 'share_file':
+          router.push(`/drive/files/permissions/${selectedFile.fid}` as any);
+          break;
       }
-      if (actionName !== 'rename' && actionName !== 'move') setSelectedFile(null);
+      // ONLY clear selectedFile if we aren't moving to another modal
+      if (actionName !== 'rename' && actionName !== 'move') {
+          setSelectedFile(null);
+      }
     }, 300);
   };
 
@@ -180,22 +185,25 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         <ListLineFileItems 
           files={files} 
           onAction={handleListSignal} 
-          onScroll={onScroll} // <-- העברה לקומפוננטת השורות
+          onScroll={onScroll} 
         />
       ) : (
         <ListBoxFileItems 
           files={files} 
           showFooter={showFooter} 
           onAction={handleListSignal} 
-          onScroll={onScroll} // <-- העברה לקומפוננטת הקוביות
+          onScroll={onScroll} 
         />
       )}
 
-      {/* Modals ... נשארים אותו דבר */}
+      {/* 1. File Action Modal */}
       {selectedFile && (
         <FileActionModal
           visible={isActionModalOpen}
-          onClose={() => { setIsActionModalOpen(false); setSelectedFile(null); }}
+          // FIX 1: Do NOT clear selectedFile here. Just close the modal.
+          // This prevents the "Race Condition" where the file is deleted before the Rename modal opens.
+          onClose={() => setIsActionModalOpen(false)}
+          
           fileID={selectedFile.fid}
           fileName={selectedFile.name}
           fileType={selectedFile.type}
@@ -204,7 +212,42 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
           onAction={handleModalAction}
         />
       )}
-      {/* Rename & Move Modals ... */}
+
+      {/* 2. Rename Modal - FIXED PROPS */}
+      {selectedFile && (
+        <RenameFileModal
+          visible={isRenameModalOpen}
+          // FIX 2: Correct Prop is 'fileName', not 'currentName'
+          fileName={selectedFile.name} 
+          
+          onClose={() => { 
+              setIsRenameModalOpen(false); 
+              setSelectedFile(null); 
+          }}
+          onRename={handleRenameSubmit}
+        />
+      )}
+
+      {/* 3. Move Modal - FIXED PROPS */}
+      {selectedFile && (
+        <MoveItemModal
+            visible={isMoveModalOpen}
+            // FIX 3: Pass 'fileId' and 'fileName' separately
+            fileId={selectedFile.fid}
+            fileName={selectedFile.name}
+            
+            onClose={() => { 
+                setIsMoveModalOpen(false); 
+                setSelectedFile(null); 
+            }}
+            onMoveSuccess={() => { 
+                onRefresh(); 
+                setIsMoveModalOpen(false); 
+                setSelectedFile(null); 
+            }}
+        />
+      )}
+
     </View>
   );
 };
