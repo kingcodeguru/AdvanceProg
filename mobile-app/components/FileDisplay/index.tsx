@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, TouchableOpacity, ActivityIndicator, SafeAreaView, 
-  Alert, Modal, Animated, Image, NativeSyntheticEvent, NativeScrollEvent, StyleSheet, 
-  ImageBackground
+  Alert, Modal, Animated, Image, NativeSyntheticEvent, NativeScrollEvent, StyleSheet 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -188,12 +187,12 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
             </>
           )}
         </View>
-        <View style={[styles.viewSwitcher, { backgroundColor: theme.bgForm }]}>
+        <View style={styles.viewSwitcher}>
           {/* Switcher Buttons: Brand Blue if active, Secondary Text if inactive */}
-          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive, { backgroundColor: isLineView ? theme.bgMain : 'transparent' }]}>
+          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive]}>
             <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive, { backgroundColor: !isLineView ? theme.bgMain : 'transparent' }]}>
+          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive]}>
             <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
         </View>
