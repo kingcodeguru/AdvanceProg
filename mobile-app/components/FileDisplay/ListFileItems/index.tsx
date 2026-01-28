@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-// 1. הוספת Platform לייבוא
 import { View, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// ייבוא מהנתיב הישן (Legacy) לתיקון שגיאות אקספו
+// --- Imports קריטיים לתיקון שגיאות ---
+// שימוש ב-legacy מונע את שגיאות ה-Deprecated של גרסה 54+
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -29,12 +29,25 @@ interface ListFileItemsProps {
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
   const router = useRouter();
   
+  // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // --- 1. לוגיקה: Rename ---
+  // --- Helper: זיהוי סוג קובץ עבור אנדרואיד ---
+  const getMimeType = (filename: string) => {
+    if (filename.endsWith('.pdf')) return 'application/pdf';
+    if (filename.endsWith('.txt')) return 'text/plain';
+    if (filename.endsWith('.doc') || filename.endsWith('.docx')) return 'application/msword';
+    if (filename.endsWith('.xls') || filename.endsWith('.xlsx')) return 'application/vnd.ms-excel';
+    if (filename.endsWith('.ppt') || filename.endsWith('.pptx')) return 'application/vnd.ms-powerpoint';
+    if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) return 'image/jpeg';
+    if (filename.endsWith('.png')) return 'image/png';
+    return 'application/octet-stream';
+  };
+
+  // --- 1. Rename Logic ---
   const handleRenameSubmit = async (newName: string) => {
     if (!selectedFile) return;
     try {
@@ -51,7 +64,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 2. לוגיקה: Star ---
+  // --- 2. Star Logic ---
   const toggleStar = async (file: any, newStatus: boolean) => {
     try {
       const response = await setStar(file.fid, newStatus);
@@ -61,7 +74,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 3. לוגיקה: Delete ---
+  // --- 3. Delete Logic ---
   const deleteAction = async (file: any) => {
     const performDelete = async () => {
       try {
@@ -85,28 +98,12 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 4. לוגיקה: Download (מתוקן עבור Web ומובייל) ---
+  // --- 4. Download Logic (עם הפרדה לאנדרואיד/iOS) ---
   const downloadSingleFile = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
       if (!response.ok) return;
       const fileData = await response.json();
-
-      // --- תרחיש א': אנחנו בדפדפן (Web) ---
-      if (Platform.OS === 'web') {
-        // יצירת לינק נסתר, לחיצה עליו, ומחיקתו. זה גורם לדפדפן להוריד את הקובץ.
-        const anchor = document.createElement('a');
-        anchor.href = fileData.content; // ה-Data URI מהשרת
-        anchor.download = file.name;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        return; // סיימנו
-      }
-
-      // --- תרחיש ב': אנחנו במובייל (iOS/Android) ---
-      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-      const localUri = `${directory}${file.name}`;
 
       let content = fileData.content;
       let encoding: any = 'utf8'; 
@@ -117,35 +114,53 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         encoding = 'base64';
       }
 
-      await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-
+      // --- מקרה א': תמונה (נשמר לגלריה בשתי הפלטפורמות) ---
       if (isImage) {
-        // תמונות נשמרות לגלריה בשקט
+        const localUri = `${FileSystem.cacheDirectory}${file.name}`;
+        await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+        
         const { status } = await MediaLibrary.requestPermissionsAsync();
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(localUri);
           Alert.alert("Success", "Saved to gallery!");
+        } else {
+          Alert.alert("Permission Required", "Gallery permission needed.");
         }
-      } else {
-        // קבצים אחרים: פותחים תפריט שמירה (זה המקביל ל"שמירה בשם" במובייל)
+        return;
+      }
+
+      // --- מקרה ב': קבצים באנדרואיד (שמירה בתיקייה) ---
+      if (Platform.OS === 'android') {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        
+        if (permissions.granted) {
+          const mimeType = getMimeType(file.name);
+          const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri, 
+            file.name, 
+            mimeType
+          );
+          await FileSystem.writeAsStringAsync(newFileUri, content, { encoding });
+          Alert.alert("Success", "File saved!");
+        }
+      } 
+      // --- מקרה ג': קבצים ב-iOS (שיתוף -> Save to Files) ---
+      else {
+        const localUri = `${FileSystem.documentDirectory}${file.name}`;
+        await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+        
         if (await Sharing.isAvailableAsync()) {
-          // שינוי קטן: לא שולחים כותרת דיאלוג כדי שזה ירגיש יותר "טבעי" למערכת
           await Sharing.shareAsync(localUri);
         }
       }
     } catch (error) {
       console.error("Download error:", error);
-      Alert.alert("Error", "Failed to download.");
+      Alert.alert("Error", "Download failed.");
     }
   };
 
-  // --- 5. לוגיקה: Send a Copy (נשאר אותו דבר - שיתוף מפורש) ---
+  // --- 5. Send Copy Logic (תמיד שיתוף) ---
   const sendCopyAction = async (file: any) => {
-    if (Platform.OS === 'web') {
-      Alert.alert("Info", "On web, use Download to save the file, then share it manually.");
-      return;
-    }
-
     try {
       const response = await getFileById(file.fid);
       const fileData = await response.json();
@@ -162,17 +177,18 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       }
 
       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-      // כאן אנחנו מוסיפים כותרת כדי להדגיש שזה שיתוף
       await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
     } catch (error) {
       console.error("Send copy error:", error);
     }
   };
 
+  // --- Main Action Handler ---
   const handleModalAction = async (actionName: string) => {
     setIsActionModalOpen(false); 
     if (!selectedFile) return;
 
+    // Timeout נותן למודאל להיסגר לפני שפותחים חדש
     setTimeout(async () => {
       switch (actionName) {
         case 'open': 
@@ -226,12 +242,14 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
             isTrashed={selectedFile.trashed}
             onAction={handleModalAction}
           />
+
           <RenameFileModal
             visible={isRenameModalOpen}
             fileName={selectedFile.name} 
             onClose={() => { setIsRenameModalOpen(false); setSelectedFile(null); }}
             onRename={handleRenameSubmit}
           />
+
           <MoveItemModal
             visible={isMoveModalOpen}
             fileId={selectedFile.fid}
