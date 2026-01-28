@@ -36,7 +36,7 @@ async function additionalFields(file, uid) {
     l_perm = l_perm.filter(perm => perm.role === ROLES.owner);
     const owner = await getSingleUser(l_perm[0].uid);
 
-    file.owner_avatar = owner.avatar;
+    // file.owner_avatar = owner.avatar;
     file.owner_name = owner.name;
     file.owner_email = owner.email;
 

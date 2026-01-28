@@ -146,44 +146,6 @@ export default function Sidebar({ visible, onClose }) {
                     {/* Brand / Logo Area */}
                     <Text style={styles.brandTitle}>LOT Drive</Text>
 
-                    {/* New Button */}
-                    <View style={styles.newButtonWrapper}>
-                        <TouchableOpacity 
-                            style={styles.btnNew} 
-                            onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                        >
-                            <Ionicons name="add" size={24} color="#000" />
-                            <Text style={styles.btnNewText}>New</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* New Dropdown Menu (Collapsible) */}
-                    {isDropdownOpen && (
-                        <View style={styles.dropdownContainer}>
-                            <TouchableOpacity style={styles.dropdownItem} onPress={() => initiateCreate('folder')}>
-                                <Ionicons name="folder-outline" size={20} color="#444" />
-                                <Text style={styles.dropdownText}>New folder</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity style={styles.dropdownItem} onPress={() => initiateCreate('text')}>
-                                <Ionicons name="document-text-outline" size={20} color="#444" />
-                                <Text style={styles.dropdownText}>New text file</Text>
-                            </TouchableOpacity>
-                            
-                            <View style={styles.divider} />
-                            
-                            <TouchableOpacity style={styles.dropdownItem} onPress={() => handleUpload('text')}>
-                                <Ionicons name="cloud-upload-outline" size={20} color="#444" />
-                                <Text style={styles.dropdownText}>File upload</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.dropdownItem} onPress={() => handleUpload('image')}>
-                                <Ionicons name="image-outline" size={20} color="#444" />
-                                <Text style={styles.dropdownText}>Image upload</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
                     {/* Navigation Items */}
                     <ScrollView style={styles.navContainer}>
                         {menuItems.map((item) => (
