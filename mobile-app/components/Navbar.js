@@ -18,47 +18,58 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as api from '../utilities/api';
 
-// 1. Import Theme Hook and Data
 import { useTheme } from '../utilities/ThemeContext';
 import Themes from '../styles/themes';
 
+// --- Solution: Global Cache Variable ---
+// This variable survives component unmounts/remounts.
+let globalUserCache = null;
+
 export default function Navbar({ onMenuPress }) {
     const router = useRouter();
-    
-    // 2. Get Current Theme
     const { isDarkMode } = useTheme();
     const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-    // --- State Management ---
     const [modalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [user, setUser] = useState({
+
+    // --- Smart Initialization ---
+    // If we have data in the cache, use it immediately to prevent flickering.
+    // Otherwise, use default empty state.
+    const [user, setUser] = useState(globalUserCache || {
         name: '',
         email: '',
         avatar: null 
     });
-// --- Data Fetching ---
+
     const fetchUserData = async () => {
         try {
             const response = await api.getMyDetails();
             if (response.ok) {
                 const data = await response.json();
-                setUser({
+                
+                const newUserState = {
                     name: data.name || 'User',
                     email: data.email || '',
                     avatar: data.avatar || null 
-                });
+                };
+
+                // Update the global cache for next time
+                globalUserCache = newUserState;
+                
+                // Update state only if data changed (optional optimization)
+                setUser(newUserState);
             }
         } catch (error) {
             console.error("Error loading user data:", error);
         }
     };
 
+    // Fetch data once on mount (background update)
     useEffect(() => {
         fetchUserData();
-    }, []);
+    }, []); 
 
-    // --- Event Handlers ---
     const handleSearch = () => {
         if (searchQuery.trim().length > 0) {
             console.log("Navigating to search:", searchQuery);
@@ -78,6 +89,10 @@ export default function Navbar({ onMenuPress }) {
                     onPress: async () => {
                         try {
                             await AsyncStorage.removeItem('userToken');
+                            
+                            // Clear cache on logout so next user doesn't see old data
+                            globalUserCache = null;
+                            
                             setModalVisible(false);
                             router.replace('/login');
                         } catch (e) {
@@ -89,12 +104,10 @@ export default function Navbar({ onMenuPress }) {
         );
     };
 
-    // --- Helpers ---
     const getInitial = () => {
         return user.name ? user.name.charAt(0).toUpperCase() : '?';
     };
 
-    // --- Components ---
     const renderProfileModal = () => (
         <Modal
             animationType="fade"
@@ -105,10 +118,8 @@ export default function Navbar({ onMenuPress }) {
             <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableWithoutFeedback>
-                        {/* 3. Apply Theme to Modal Content */}
                         <View style={[styles.modalContent, { backgroundColor: theme.bgForm }]}>
                             
-                            {/* Close Icon (Dynamic Color) */}
                             <TouchableOpacity 
                                 style={styles.closeBtn} 
                                 onPress={() => setModalVisible(false)}
@@ -116,7 +127,6 @@ export default function Navbar({ onMenuPress }) {
                                 <MaterialIcons name="close" size={22} color={theme.textSecondary} />
                             </TouchableOpacity>
 
-                            {/* Brand Logo */}
                             <View style={styles.logoContainer}>
                                 <Text style={styles.brandLogo}>
                                     <Text style={{color: '#4285F4'}}>L</Text>
@@ -125,7 +135,6 @@ export default function Navbar({ onMenuPress }) {
                                 </Text>
                             </View>
 
-                            {/* User Information */}
                             <View style={styles.userInfoSection}>
                                 <View style={styles.largeAvatarContainer}>
                                     {user.avatar ? (
@@ -137,7 +146,6 @@ export default function Navbar({ onMenuPress }) {
                                     )}
                                 </View>
 
-                                {/* Dynamic Text Colors */}
                                 <Text style={[styles.userName, { color: theme.textMain }]}>
                                     Hi, {user.name.split(' ')[0]}!
                                 </Text>
@@ -146,10 +154,8 @@ export default function Navbar({ onMenuPress }) {
                                 </Text>
                             </View>
 
-                            {/* Dynamic Divider */}
                             <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
 
-                            {/* Sign Out Button */}
                             <View style={styles.footerSection}>
                                 <TouchableOpacity 
                                     style={[styles.signOutBtn, { borderColor: theme.borderSubtle }]}
@@ -167,21 +173,16 @@ export default function Navbar({ onMenuPress }) {
         </Modal>
     );
 
-    // --- Main Render ---
     return (
-        // 4. SafeArea matches Main Background (e.g., White or Dark Gray)
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
             <View style={[styles.headerContainer, { backgroundColor: theme.bgMain }]}>
                 
-                {/* 5. Search Bar Background: Light Gray vs Dark Gray */}
                 <View style={[styles.searchBarContainer, { backgroundColor: isDarkMode ? theme.bgForm : '#f0f4f9' }]}>
                     
-                    {/* Hamburger Menu */}
                     <TouchableOpacity onPress={onMenuPress} style={styles.iconBtn}>
                         <MaterialIcons name="menu" size={26} color={theme.textMain} />
                     </TouchableOpacity>
 
-                    {/* Search Input */}
                     <TextInput
                         style={[styles.searchInput, { color: theme.textMain }]}
                         placeholder="Search in Drive"
@@ -192,7 +193,6 @@ export default function Navbar({ onMenuPress }) {
                         returnKeyType="search"
                     />
 
-                    {/* Profile Avatar Button */}
                     <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.profileBtn}>
                         {user.avatar ? (
                              <Image source={{ uri: user.avatar }} style={styles.smallAvatarImage} />
@@ -211,27 +211,20 @@ export default function Navbar({ onMenuPress }) {
     );
 }
 
-// --- Styles ---
-// Note: Colors that are DYNAMIC are handled inline above.
-// Static layout styles remain here.
 const styles = StyleSheet.create({
     safeArea: {
-        // backgroundColor handled inline
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     },
     headerContainer: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        // backgroundColor handled inline
     },
     searchBarContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        // backgroundColor handled inline
         borderRadius: 28, 
         height: 52,
         paddingHorizontal: 8,
-        // Shadow/Elevation
         elevation: 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -242,7 +235,6 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 16,
-        // color handled inline
         paddingHorizontal: 8,
         textAlign: 'left', 
     },
@@ -264,8 +256,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
-
-    // Modal Styling
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
@@ -275,7 +265,6 @@ const styles = StyleSheet.create({
     modalContent: {
         width: '85%',
         maxWidth: 320,
-        // backgroundColor handled inline
         borderRadius: 16,
         paddingVertical: 20,
         elevation: 10,
@@ -329,16 +318,13 @@ const styles = StyleSheet.create({
     userName: { 
         fontSize: 18, 
         fontWeight: '500', 
-        // color handled inline 
         marginBottom: 4 
     },
     userEmail: { 
         fontSize: 14, 
-        // color handled inline 
     },
     divider: {
         height: 1,
-        // backgroundColor handled inline
         marginVertical: 15,
         width: '100%'
     },
@@ -350,14 +336,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        // borderColor handled inline
         borderRadius: 24, 
         paddingVertical: 10,
         paddingHorizontal: 40,
     },
     signOutText: { 
         fontSize: 15, 
-        // color handled inline 
         fontWeight: '500' 
     },
 });
