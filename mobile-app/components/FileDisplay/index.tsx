@@ -96,12 +96,12 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
             </>
           )}
         </View>
-        <View style={styles.viewSwitcher}>
+        <View style={[styles.viewSwitcher, { backgroundColor: theme.bgHover }]}>
           <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive, { backgroundColor: isLineView ? theme.bgMain : 'transparent' }]}>
-            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.bgForm} />
+            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive, { backgroundColor: !isLineView ? theme.bgMain : 'transparent' }]}>
-            <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.bgForm} />
+            <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>

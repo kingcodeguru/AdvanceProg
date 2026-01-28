@@ -5,9 +5,13 @@ import {
 } from 'react-native';
 import { styles } from './styles';
 
-// חיבור ללוגיקה המאוחדת
+// Logic Imports
 import { getRole, getFileById } from '@/utilities/api'; 
 import { can_view, can_edit, can_change_permissions } from '@/utilities/roles';
+
+// 1. Theme Imports
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -40,6 +44,10 @@ interface FileActionModalProps {
 const FileActionModal = ({ 
   visible, fileID, fileName, fileType, onClose, onAction, isStarred, isTrashed 
 }: FileActionModalProps) => {
+
+  // 2. Get Current Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [roles, setRoles] = useState({ fileRole: 0, parentRole: 0, isLoading: true });
@@ -78,13 +86,12 @@ const FileActionModal = ({
   const handleItemClick = (action: string) => {
     Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 200, useNativeDriver: true }).start(() => {
       onAction(action);
-      onClose(); // סגירה רק אחרי שהאנימציה מסתיימת והפעולה נשלחה
+      onClose(); 
     });
   };
 
   const { fileRole, parentRole, isLoading } = roles;
 
-  // --- הגדרת התפריט בצורה נקייה ---
   const sections = [
     {
       id: 'actions',
@@ -105,7 +112,6 @@ const FileActionModal = ({
       id: 'organize',
       items: [
         { id: 'move', label: 'Move', icon: ICON_MOVE, show: can_edit(fileRole) && can_edit(parentRole) },
-        // שינוי משמעותי: ID אחיד (toggle_star) במקום לוגיקה מסובכת
         { 
           id: 'toggle_star', 
           label: isStarred ? "Remove from starred" : "Add to starred", 
@@ -133,26 +139,69 @@ const FileActionModal = ({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }], maxHeight: SCREEN_HEIGHT * 0.5 }]}>
-              <View style={styles.dragHandle} />
+            <Animated.View 
+              style={[
+                styles.modalContainer, 
+                // 3. Dynamic Background Color
+                { 
+                  backgroundColor: theme.bgForm,
+                  transform: [{ translateY: slideAnim }], 
+                  maxHeight: SCREEN_HEIGHT * 0.5 
+                }
+              ]}
+            >
+              {/* Dynamic Drag Handle */}
+              <View style={[styles.dragHandle, { backgroundColor: theme.borderSubtle }]} />
+              
               <View style={styles.headerContainer}>
-                <Image source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} style={styles.headerIcon} />
-                <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
+                {/* Header Icon usually stays original color (Docs/Images), no tint needed */}
+                
+                <Image 
+                  source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} 
+                  style={styles.headerIcon} 
+                />
+                <Text style={[styles.headerTitle, { color: theme.textMain }]} numberOfLines={1}>
+                  {fileName}
+                </Text>
               </View>
 
               {isLoading ? (
-                <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#1a73e8" /></View>
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={theme.brandBlue} />
+                </View>
               ) : (
                 <ScrollView bounces={false} style={{ flexGrow: 0 }}>
                   {visibleSections.map((section, index) => (
                     <React.Fragment key={section.id}>
-                      {section.items.map(item => (
-                        <TouchableOpacity key={item.id} style={styles.menuItem} onPress={() => handleItemClick(item.id)}>
-                          <Image source={item.icon} style={styles.menuItemIcon} />
-                          <Text style={styles.menuItemText}>{item.label}</Text>
-                        </TouchableOpacity>
-                      ))}
-                      {index < visibleSections.length - 1 && <View style={styles.divider} />}
+                      {section.items.map(item => {
+                        
+                        // 4. Determine Icon Tint
+                        // If it is the 'Filled Star', use Brand Blue.
+                        // Otherwise (including 'Outline Star' and other icons), use Secondary Text color.
+                        const isFilledStar = item.id === 'toggle_star' && isStarred;
+                        const iconTint = isFilledStar ? theme.brandBlue : theme.textSecondary;
+
+                        return (
+                          <TouchableOpacity 
+                            key={item.id} 
+                            style={styles.menuItem} 
+                            onPress={() => handleItemClick(item.id)}
+                          >
+                            <Image 
+                              source={item.icon} 
+                              style={[styles.menuItemIcon, { tintColor: iconTint }]} 
+                            />
+                            <Text style={[styles.menuItemText, { color: theme.textMain }]}>
+                              {item.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      
+                      {/* Dynamic Divider */}
+                      {index < visibleSections.length - 1 && (
+                        <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
+                      )}
                     </React.Fragment>
                   ))}
                 </ScrollView>
