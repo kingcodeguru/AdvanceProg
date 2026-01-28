@@ -21,8 +21,8 @@ import {
     getMyDetails, 
     getFilePermissions, 
     addFilePermission, 
-    updatePermission, 
-    removePermission,
+    updateFilePermission, 
+    deleteFilePermission,
     getFileById
 } from '../../../../utilities/api'; // Adjust path if needed
 
@@ -207,14 +207,14 @@ export default function PermissionsScreen() {
 
     const performUpdateRole = async (user, newRole) => {
         try {
-            const response = await updatePermission(id, user.uid, newRole);
+            const response = await updateFilePermission(id, user.uid, newRole);
             if (response.ok) {
                 fetchPermissionsList(); // Refresh list
             } else {
                 Alert.alert("Error", "Failed to update role.");
             }
         } catch (error) {
-            Alert.alert("Error", "Network error.");
+            Alert.alert("Error", "Network error: " + error.message);
         }
     };
 
@@ -233,7 +233,7 @@ export default function PermissionsScreen() {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            const response = await removePermission(id, user.uid);
+                            const response = await deleteFilePermission(id, user.uid);
                             if (response.ok) {
                                 if (isMe) {
                                     Alert.alert("Left File", "You have successfully left the file.", [
@@ -246,7 +246,7 @@ export default function PermissionsScreen() {
                                 Alert.alert("Error", "Failed to remove user.");
                             }
                         } catch (error) {
-                            Alert.alert("Error", "Network error.");
+                            Alert.alert("Error", "Network error: " + error.message);
                         }
                     }
                 }
