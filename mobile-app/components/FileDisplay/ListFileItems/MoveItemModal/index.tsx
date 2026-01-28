@@ -31,8 +31,7 @@ import Themes from '@/styles/themes';
 
 // --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
-// ודאי שיש לך אייקון כזה, אחרת תשני ל-FOLDER_ICON
-const DRIVE_ICON = require('@/assets/images/drive_icon.jpg'); 
+const DRIVE_ICON = FOLDER_ICON; // ניתן לשנות לאייקון אחר אם יש
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
@@ -51,7 +50,7 @@ interface FolderItem {
   type: string;
   parent_id?: string | null;
   starred?: boolean;
-  isRootRedirect?: boolean; // שדה לזיהוי הקיצור
+  isRootRedirect?: boolean;
 }
 
 const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: MoveFileModalProps) => {
@@ -71,15 +70,13 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // === תיקון חדש: סטייט שעוקב אם המשתמש כבר ניווט בתוך המודאל ===
+  // סטייט לניווט חד פעמי
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // --- 1. Init Logic ---
   useEffect(() => {
     if (visible && fileId) {
-      // איפוס הסטייט של הניווט בפתיחה מחדש
-      setHasNavigated(false); 
-
+      setHasNavigated(false);
       let mounted = true;
       const init = async () => {
         try {
@@ -171,14 +168,14 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
         const allowedFolders: FolderItem[] = [];
 
-        // === התיקון: הוספת My Drive רק אם טרם ניווטנו (!hasNavigated) ===
+        // הוספת My Drive אם צריך
         if (
             originParentId !== 'root' && 
             originParentId !== null &&
             !isSearch && 
             currentPath.length === 1 && 
             activeTab === 'all' &&
-            !hasNavigated // <--- התנאי החדש
+            !hasNavigated
         ) {
             allowedFolders.push({
                 fid: 'root',
@@ -187,7 +184,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                 isRootRedirect: true
             });
         }
-        // ===============================================================
 
         for (const folder of candidates) {
             try {
@@ -214,9 +210,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     setSearchQuery('');
     setActiveTab('all'); 
     setIsSearchActive(false);
-    
-    // ברגע שנכנסים לתיקייה כלשהי, מסמנים שכבר ניווטנו
-    setHasNavigated(true); 
+    setHasNavigated(true);
 
     if (folder.isRootRedirect) {
         setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
@@ -264,13 +258,13 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const isAtOrigin = currentFolder.fid === originParentId;
   const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
-  // --- Render Item (עם תיקון האייקון) ---
+  // --- Render Item ---
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
-        {/* שימוש באייקון דרייב אם זה הקיצור, אחרת תיקייה רגילה */}
         <Image 
             source={item.isRootRedirect ? DRIVE_ICON : FOLDER_ICON} 
+            defaultSource={FOLDER_ICON}
             style={styles.folderImage} 
         />
       </View>
@@ -303,7 +297,8 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                   )}
               </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15 }}>
+              {/* התיקון: הוספתי width: 100% ו-justifyContent: flex-start כדי להצמיד לשמאל */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, width: '100%', justifyContent: 'flex-start' }}>
                  {currentPath.length > 1 ? (
                     <TouchableOpacity onPress={handleGoBack} style={{ flexDirection: 'row', alignItems: 'center' }}>
                        <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.brandBlue, width: 20, height: 20, marginRight: 8 }]} />
