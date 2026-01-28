@@ -1,6 +1,7 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-const { height } = Dimensions.get('window');
+// תיקון: הגדרת השם SCREEN_HEIGHT כך שיתאים לשימוש בסטייל
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   overlay: {
@@ -10,17 +11,19 @@ export const styles = StyleSheet.create({
   },
   
   modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    height: height * 0.55, 
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingBottom: 20, 
     width: '100%',
+    // עכשיו SCREEN_HEIGHT מוגדר ומוכר כאן
+    maxHeight: SCREEN_HEIGHT * 0.5, 
+    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 10,
-    paddingBottom: 20,
   },
 
   dragHandle: {
@@ -66,7 +69,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   
-  // --- אייקונים רגילים + כוכב מלא ---
   menuItemIcon: {
     width: 28, 
     height: 28,
@@ -75,11 +77,10 @@ export const styles = StyleSheet.create({
     opacity: 0.6,
   },
 
-  // --- אייקון כוכב ריק (קטן יותר) ---
   emptyStarIcon: {
-    width: 22,   // קטן יותר (היה 28)
+    width: 22,   
     height: 22,
-    marginRight: 26, // רווח גדול יותר (20 + 6) כדי לפצות
+    marginRight: 26, 
     resizeMode: 'contain',
     opacity: 0.6,
   },

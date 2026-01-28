@@ -1,15 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
-  Modal, View, Text, TouchableOpacity, Image, ScrollView, 
-  ActivityIndicator, TouchableWithoutFeedback, Animated, Dimensions
+  Modal, 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Image, 
+  ScrollView, 
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+  Animated, 
+  Dimensions,
+  StyleSheet
 } from 'react-native';
 import { styles } from './styles';
 
-// --- ייבוא לוגיקת התפקידים וה-API ---
+// חיבור ללוגיקת הפרויקט המאוחדת
 import { getRole, getFileById } from '@/utilities/api'; 
-import { can_view, can_edit, can_change_permissions } from '@/utilities/roles'; // גישה עם שטורדל
+import { can_view, can_edit, can_change_permissions } from '@/utilities/roles';
 
-// --- תמונות ואייקונים ---
+// --- הגדרת גובה המסך לאנימציה ---
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// --- ייבוא אייקונים (ודאו שהנתיבים תואמים למבנה התיקיות שלכם) ---
 const ICON_OPEN = require('@/assets/images/open_icon.png');
 const ICON_DOWNLOAD = require('@/assets/images/download_icon.png');
 const ICON_RENAME = require('@/assets/images/rename_icon.png');
@@ -25,8 +37,6 @@ const ICON_DOC = require('@/assets/images/docs_logo.png');
 const ICON_IMG = require('@/assets/images/picture_logo.png');
 const ICON_DIR = require('@/assets/images/dir_logo.png');
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 interface FileActionModalProps {
   visible: boolean;
   fileID: string;
@@ -39,15 +49,27 @@ interface FileActionModalProps {
 }
 
 const FileActionModal = ({ 
-  visible, fileID, fileName, fileType, onClose, onAction, isStarred, isTrashed 
+  visible, 
+  fileID, 
+  fileName,
+  fileType,
+  onClose, 
+  onAction, 
+  isStarred, 
+  isTrashed 
 }: FileActionModalProps) => {
 
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const [roles, setRoles] = useState({ fileRole: 0, parentRole: 0, isLoading: true });
+
+  const [roles, setRoles] = useState({
+    fileRole: 0,
+    parentRole: 0,
+    isLoading: true 
+  });
 
   useEffect(() => {
     if (visible && fileID) {
-      // אנימציית כניסה
+      // אנימציה קפיצית ומהירה לכניסה
       Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
@@ -55,43 +77,42 @@ const FileActionModal = ({
         speed: 12
       }).start();
 
-      let isMounted = true;
-      const fetchData = async () => {
-        try {
-          setRoles(prev => ({ ...prev, isLoading: true }));
-          
-          // קבלת תפקיד המשתמש בקובץ
-          const fRole = await getRole(fileID);
-          
-          // קבלת ה-parent_id ובדיקת הרשאות עליו
-          let pRole = 2; // דיפולט ל-Root
-          try {
-            const response = await getFileById(fileID);
-            const fileData = response.json ? await response.json() : response;
-            const pId = fileData?.parent_id;
-
-            if (pId && pId !== 'root') {
-              pRole = await getRole(pId);
-            }
-          } catch (e) { console.log("Parent fetch failed", e); }
-
-          if (isMounted) {
-            setRoles({
-              fileRole: fRole ?? 0,
-              parentRole: pRole ?? 0,
-              isLoading: false
-            });
-          }
-        } catch (error) {
-          console.error("Roles fetch error:", error);
-          if (isMounted) setRoles(prev => ({ ...prev, isLoading: false }));
-        }
-      };
-      
       fetchData();
-      return () => { isMounted = false; };
+    } else {
+      slideAnim.setValue(SCREEN_HEIGHT);
     }
   }, [visible, fileID]);
+
+  const fetchData = async () => {
+    try {
+      setRoles(prev => ({ ...prev, isLoading: true }));
+      
+      // שליפת תפקיד הקובץ מה-API של הפרויקט
+      const fRole = await getRole(fileID);
+      
+      let pRole = 2; // ברירת מחדל ל-Root/Admin
+      try {
+        const response = await getFileById(fileID);
+        const fileData = response.json ? await response.json() : response;
+        const pId = fileData?.parent_id;
+
+        if (pId && pId !== 'root') {
+          pRole = await getRole(pId);
+        }
+      } catch (e) {
+        console.log("Error checking parent role", e);
+      }
+
+      setRoles({
+        fileRole: fRole ?? 0,
+        parentRole: pRole ?? 2,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error("Fetch roles failed:", error);
+      setRoles(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   const handleClose = () => {
     Animated.timing(slideAnim, {
@@ -114,69 +135,91 @@ const FileActionModal = ({
 
   const { fileRole, parentRole, isLoading } = roles;
 
+  // --- ארגון התפריט לקבוצות לוגיות (בדומה לגרסת ה-Web) ---
+  const sections = [
+    {
+      id: 'actions',
+      items: [
+        { id: 'open', label: 'Open', icon: ICON_OPEN, show: can_view(fileRole) },
+        { id: 'download', label: 'Download', icon: ICON_DOWNLOAD, show: can_view(fileRole) },
+        { id: 'rename', label: 'Rename', icon: ICON_RENAME, show: can_edit(fileRole) },
+      ]
+    },
+    {
+      id: 'share',
+      items: [
+        { id: 'share_file', label: 'Share', icon: ICON_SHARE, show: can_change_permissions(fileRole) },
+        { id: 'copy_link', label: 'Copy link', icon: ICON_LINK, show: can_change_permissions(fileRole) },
+      ]
+    },
+    {
+      id: 'organize',
+      items: [
+        { id: 'move', label: 'Move', icon: ICON_MOVE, show: can_edit(fileRole) && can_edit(parentRole) },
+        { id: 'star', label: isStarred ? "Remove from starred" : "Add to starred", icon: isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD, show: can_view(fileRole) },
+      ]
+    },
+    {
+      id: 'danger',
+      items: [
+        { id: 'delete', label: 'Remove', icon: ICON_DELETE, show: can_edit(fileRole) },
+        { id: 'restore', label: 'Restore', icon: ICON_RESTORE, show: !!isTrashed && can_edit(fileRole) },
+      ]
+    }
+  ];
+
+  // סינון קבוצות ריקות כדי למנוע מפרידים מיותרים
+  const visibleSections = sections.map(sec => ({
+    ...sec,
+    items: sec.items.filter(item => item.show)
+  })).filter(sec => sec.items.length > 0);
+
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={handleClose}>
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]}>
+            <Animated.View 
+              style={[
+                styles.modalContainer, 
+                { 
+                  transform: [{ translateY: slideAnim }],
+                  maxHeight: SCREEN_HEIGHT * 0.5 // התפריט יתכווץ לפי התוכן
+                }
+              ]}
+            >
               <View style={styles.dragHandle} />
 
               <View style={styles.headerContainer}>
-                 <Image source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} style={styles.headerIcon} />
-                 <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
+                <Image 
+                  source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} 
+                  style={styles.headerIcon} 
+                />
+                <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
               </View>
 
               {isLoading ? (
-                <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#1a73e8" /></View>
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1a73e8" />
+                </View>
               ) : (
-                <ScrollView contentContainerStyle={styles.contentScroll}>
-                  
-                  {/* לוגיקת הצגת כפתורים לפי Roles.js המשותף */}
-                  {can_view(fileRole) && (
-                    <>
-                      <MenuOption label="Open" icon={ICON_OPEN} onPress={() => handleItemClick('open')} />
-                      <MenuOption label="Download" icon={ICON_DOWNLOAD} onPress={() => handleItemClick('download')} />
-                    </>
-                  )}
-
-                  {can_edit(fileRole) && (
-                    <MenuOption label="Rename" icon={ICON_RENAME} onPress={() => handleItemClick('rename')} />
-                  )}
-
-                  <View style={styles.divider} />
-
-                  {can_change_permissions(fileRole) && (
-                    <>
-                      <MenuOption label="Share" icon={ICON_SHARE} onPress={() => handleItemClick('share_file')} />
-                      <MenuOption label="Copy link" icon={ICON_LINK} onPress={() => handleItemClick('copy_link')} />
-                    </>
-                  )}
-
-                  <View style={styles.divider} />
-
-                  {can_edit(fileRole) && can_edit(parentRole) && (
-                    <MenuOption label="Move" icon={ICON_MOVE} onPress={() => handleItemClick('move')} />
-                  )}
-
-                  {can_view(fileRole) && (
-                    <MenuOption 
-                      label={isStarred ? "Remove from starred" : "Add to starred"} 
-                      icon={isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD} 
-                      onPress={() => handleItemClick(isStarred ? 'remove_star' : 'add_star')} 
-                    />
-                  )}
-
-                  <View style={styles.divider} />
-
-                  {can_edit(fileRole) && (
-                    <MenuOption label="Remove" icon={ICON_DELETE} onPress={() => handleItemClick('delete')} />
-                  )}
-
-                  {isTrashed && can_edit(fileRole) && (
-                    <MenuOption label="Restore" icon={ICON_RESTORE} onPress={() => handleItemClick('restore')} />
-                  )}
-                  
+                <ScrollView bounces={false} style={{ flexGrow: 0 }}>
+                  {visibleSections.map((section, index) => (
+                    <React.Fragment key={section.id}>
+                      {section.items.map(item => (
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={styles.menuItem} 
+                          onPress={() => handleItemClick(item.id)}
+                        >
+                          <Image source={item.icon} style={styles.menuItemIcon} />
+                          <Text style={styles.menuItemText}>{item.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                      {/* מפריד רק אם יש קבוצה נוספת בהמשך */}
+                      {index < visibleSections.length - 1 && <View style={styles.divider} />}
+                    </React.Fragment>
+                  ))}
                 </ScrollView>
               )}
             </Animated.View>
@@ -186,13 +229,5 @@ const FileActionModal = ({
     </Modal>
   );
 };
-
-// קומפוננטת עזר פנימית לסדר בעיניים
-const MenuOption = ({ label, icon, onPress }: any) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <Image source={icon} style={styles.menuItemIcon} />
-    <Text style={styles.menuItemText}>{label}</Text>
-  </TouchableOpacity>
-);
 
 export default FileActionModal;
