@@ -12,8 +12,9 @@ import * as api from '@/utilities/api';
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
-// IMPORT THE NEW COMPONENT
+// 1. IMPORT COMPONENTS
 import PlusModal from './PlusModal';
+import BottomBar from '../BottomBar'; // Adjust path if needed (e.g., '@/components/BottomBar')
 
 const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, folderId }: { refreshSignal?: any, category?: string, searchQuery?: string, folderId?: string }) => {
   const router = useRouter();
@@ -106,6 +107,7 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
         </View>
       </View>
 
+      {/* Main Content Area */}
       <View style={{ flex: 1 }}>
         {loading ? (
           <View style={styles.centerContainer}><ActivityIndicator size="large" color={theme.brandBlue} /></View>
@@ -118,7 +120,7 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
           />
         )}
         
-        {/* NEW: Extracted PlusModal Component */}
+        {/* Extracted PlusModal Component */}
         {!searchQuery && (
           <PlusModal 
              folderId={folderId} 
@@ -127,6 +129,12 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
           />
         )}
       </View>
+
+      {/* 2. ADD BOTTOM BAR (Visible only when not searching) */}
+      {!searchQuery && (
+        <BottomBar />
+      )}
+
     </SafeAreaView>
   );
 };
