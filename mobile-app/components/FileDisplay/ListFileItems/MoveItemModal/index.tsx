@@ -31,7 +31,7 @@ import Themes from '@/styles/themes';
 
 // --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
-const DRIVE_ICON = FOLDER_ICON; // ניתן לשנות לאייקון אחר אם יש
+const DRIVE_ICON = require('@/assets/images/drive_icon.jpg');
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
@@ -59,6 +59,8 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
   // --- State ---
   const [isInit, setIsInit] = useState(true);
+  
+  // בווב originParentId הוא null אם זה ברוט
   const [originParentId, setOriginParentId] = useState<string | null>(null);
   const [originParentName, setOriginParentName] = useState<string>('My Drive');
 
@@ -69,8 +71,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // סטייט לניווט חד פעמי
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // --- 1. Init Logic ---
@@ -84,13 +84,13 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           const fileRes = await getFileById(fileId);
           const fileData = fileRes.json ? await fileRes.json() : fileRes;
           
-          const parentId = fileData.parent_id || 'root';
+          const parentId = fileData.parent_id; // null עבור Root
           if (mounted) setOriginParentId(parentId);
 
           let startName = 'My Drive';
           let startId = 'root';
 
-          if (parentId !== 'root' && parentId !== null) {
+          if (parentId && parentId !== 'root') {
               startId = parentId;
              try {
                const parentRes = await getFileById(parentId);
@@ -106,7 +106,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           }
         } catch (e) {
           if (mounted) {
-            setOriginParentId('root');
+            setOriginParentId(null); // Fallback to root (null)
             setOriginParentName('My Drive');
             setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
             setIsInit(false);
@@ -168,10 +168,10 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
         const allowedFolders: FolderItem[] = [];
 
-        // הוספת My Drive אם צריך
+        // הוספת My Drive רק אם אנחנו לא במקור, בשכבה העליונה, ולא ניווטנו עדיין
         if (
-            originParentId !== 'root' && 
-            originParentId !== null &&
+            originParentId !== null && 
+            originParentId !== 'root' &&
             !isSearch && 
             currentPath.length === 1 && 
             activeTab === 'all' &&
@@ -238,7 +238,13 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   };
 
   const handleMove = async () => {
-    const destinationId = currentFolder.fid;
+    // === תיקון קריטי: המרה ל-null עבור השרת ===
+    let destinationId: string | null = currentFolder.fid;
+    if (destinationId === 'root') {
+        destinationId = null; // השרת מצפה ל-null ב-My Drive
+    }
+
+    // הגנה מפני העברה לאותו מקום
     if (destinationId === originParentId) return;
 
     try {
@@ -247,7 +253,8 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         onMoveSuccess();
         onClose();
       } else {
-        alert("Failed to move");
+        const errData = await res.json();
+        alert(`Failed to move: ${errData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error(error);
@@ -255,7 +262,12 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     }
   };
 
-  const isAtOrigin = currentFolder.fid === originParentId;
+  // בדיקת תקינות לכפתור (Move Enabled)
+  // מנרמלים את שניהם כדי להשוות תפוחים לתפוחים
+  const currentNormalized = currentFolder.fid === 'root' ? null : currentFolder.fid;
+  const originNormalized = (originParentId === 'root' || originParentId === '') ? null : originParentId;
+  const isMoveEnabled = currentNormalized !== originNormalized;
+  
   const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
   // --- Render Item ---
@@ -297,7 +309,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                   )}
               </View>
 
-              {/* התיקון: הוספתי width: 100% ו-justifyContent: flex-start כדי להצמיד לשמאל */}
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, width: '100%', justifyContent: 'flex-start' }}>
                  {currentPath.length > 1 ? (
                     <TouchableOpacity onPress={handleGoBack} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -327,13 +338,24 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
               )}
             </View>
           ) : (
-            <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle }]}>
+            // === תיקון דארק מוד לחיפוש ===
+            <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle, backgroundColor: theme.bgMain }]}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
                   <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
                </TouchableOpacity>
                
+               {/* אינפוט מעוצב לדארק מוד */}
                <TextInput
-                 style={[styles.searchInput, { color: theme.textMain }]}
+                 style={{
+                    flex: 1,
+                    marginLeft: 10,
+                    fontSize: 16,
+                    color: theme.textMain, // טקסט בצבע המתאים
+                    backgroundColor: isDarkMode ? '#333333' : '#f1f3f4', // רקע מותאם
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                 }}
                  placeholder="Search destination"
                  placeholderTextColor={theme.textSecondary}
                  value={searchQuery}
@@ -342,8 +364,8 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
                />
                
                {searchQuery.length > 0 && (
-                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                   <Image source={CLOSE_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary }]} />
+                 <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginLeft: 8 }}>
+                   <Image source={CLOSE_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary, width: 20, height: 20 }]} />
                  </TouchableOpacity>
                )}
             </View>
@@ -379,14 +401,14 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             <TouchableOpacity 
               style={[
                   styles.moveButton, 
-                  { backgroundColor: isAtOrigin ? theme.bgHover : theme.brandBlue },
+                  { backgroundColor: isMoveEnabled ? theme.brandBlue : theme.bgHover },
               ]}
               onPress={handleMove}
-              disabled={isAtOrigin}
+              disabled={!isMoveEnabled}
             >
               <Text style={[
                   styles.moveButtonText, 
-                  { color: isAtOrigin ? theme.textSecondary : '#fff' }
+                  { color: isMoveEnabled ? '#fff' : theme.textSecondary }
               ]}>
                 Move here
               </Text>
