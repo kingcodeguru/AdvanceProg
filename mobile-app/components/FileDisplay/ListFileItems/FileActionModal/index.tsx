@@ -1,25 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
-  Modal, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView, 
-  ActivityIndicator,
-  TouchableWithoutFeedback,
-  Animated, 
-  Dimensions
+  Modal, View, Text, TouchableOpacity, Image, ScrollView, 
+  ActivityIndicator, TouchableWithoutFeedback, Animated, Dimensions
 } from 'react-native';
 import { styles } from './styles';
 
-// 1. Import Theme Hook
-import { useTheme } from '@/utilities/ThemeContext';
-import Themes from '@/styles/themes';
-
+// --- ייבוא לוגיקת התפקידים וה-API ---
 import { getRole, getFileById } from '@/utilities/api'; 
+import { can_view, can_edit, can_change_permissions } from '@/utilities/roles'; // גישה עם שטורדל
 
-// --- Images ---
+// --- תמונות ואייקונים ---
 const ICON_OPEN = require('@/assets/images/open_icon.png');
 const ICON_DOWNLOAD = require('@/assets/images/download_icon.png');
 const ICON_RENAME = require('@/assets/images/rename_icon.png');
@@ -37,10 +27,6 @@ const ICON_DIR = require('@/assets/images/dir_logo.png');
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const can_view = (role: number) => role >= 1;
-const can_edit = (role: number) => role >= 2;
-const can_change_permissions = (role: number) => role >= 2;
-
 interface FileActionModalProps {
   visible: boolean;
   fileID: string;
@@ -53,30 +39,15 @@ interface FileActionModalProps {
 }
 
 const FileActionModal = ({ 
-  visible, 
-  fileID, 
-  fileName,
-  fileType,
-  onClose, 
-  onAction, 
-  isStarred, 
-  isTrashed 
+  visible, fileID, fileName, fileType, onClose, onAction, isStarred, isTrashed 
 }: FileActionModalProps) => {
 
-  // 2. Get Theme
-  const { isDarkMode } = useTheme();
-  const theme = Themes[isDarkMode ? 'dark' : 'light'];
-
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-
-  const [roles, setRoles] = useState({
-    fileRole: 0,
-    parentRole: 0,
-    isLoading: true 
-  });
+  const [roles, setRoles] = useState({ fileRole: 0, parentRole: 0, isLoading: true });
 
   useEffect(() => {
     if (visible && fileID) {
+      // אנימציית כניסה
       Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
@@ -84,45 +55,41 @@ const FileActionModal = ({
         speed: 12
       }).start();
 
-      setRoles(prev => ({ ...prev, isLoading: true }));
       let isMounted = true;
-
       const fetchData = async () => {
         try {
+          setRoles(prev => ({ ...prev, isLoading: true }));
+          
+          // קבלת תפקיד המשתמש בקובץ
           const fRole = await getRole(fileID);
           
-          let pId = "";
+          // קבלת ה-parent_id ובדיקת הרשאות עליו
+          let pRole = 2; // דיפולט ל-Root
           try {
-            const fileDataRes = await getFileById(fileID);
-            const fileData = fileDataRes.json ? await fileDataRes.json() : fileDataRes;
-            pId = fileData.parent_id || (fileData.ok ? (await fileData.json()).parent_id : "");
-          } catch (e) { console.log("Parent check error", e); }
+            const response = await getFileById(fileID);
+            const fileData = response.json ? await response.json() : response;
+            const pId = fileData?.parent_id;
 
-          let pRole = 0;
-          if (pId && pId !== 'root') {
-             try { pRole = await getRole(pId); } catch(e) {}
-          } else {
-             pRole = 2; 
-          }
+            if (pId && pId !== 'root') {
+              pRole = await getRole(pId);
+            }
+          } catch (e) { console.log("Parent fetch failed", e); }
 
           if (isMounted) {
             setRoles({
-              fileRole: fRole || 0,
-              parentRole: pRole || 0,
+              fileRole: fRole ?? 0,
+              parentRole: pRole ?? 0,
               isLoading: false
             });
           }
         } catch (error) {
-          console.error("Error fetching roles:", error);
+          console.error("Roles fetch error:", error);
           if (isMounted) setRoles(prev => ({ ...prev, isLoading: false }));
         }
       };
       
       fetchData();
       return () => { isMounted = false; };
-
-    } else {
-      slideAnim.setValue(SCREEN_HEIGHT);
     }
   }, [visible, fileID]);
 
@@ -131,9 +98,7 @@ const FileActionModal = ({
       toValue: SCREEN_HEIGHT,
       duration: 200,
       useNativeDriver: true
-    }).start(() => {
-      onClose(); 
-    });
+    }).start(onClose);
   };
 
   const handleItemClick = (action: string) => {
@@ -147,128 +112,69 @@ const FileActionModal = ({
     });
   };
 
-  const getHeaderIcon = () => {
-    switch (fileType) {
-        case 'image': return ICON_IMG;
-        case 'directory': return ICON_DIR;
-        default: return ICON_DOC;
-    }
-  };
-
   const { fileRole, parentRole, isLoading } = roles;
 
-  // Helper for consistent icon style (tinting for dark mode)
-  const iconStyle = [styles.menuItemIcon, { tintColor: theme.textSecondary }];
-
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={handleClose} 
-    >
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
-          
           <TouchableWithoutFeedback>
-            <Animated.View 
-              style={[
-                styles.modalContainer, 
-                { backgroundColor: theme.bgForm, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
-              <View style={[styles.dragHandle, { backgroundColor: theme.borderSubtle }]} />
+            <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]}>
+              <View style={styles.dragHandle} />
 
               <View style={styles.headerContainer}>
-                 <Image source={getHeaderIcon()} style={styles.headerIcon} />
-                 <Text style={[styles.headerTitle, { color: theme.textMain }]} numberOfLines={1}>
-                    {fileName}
-                 </Text>
+                 <Image source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} style={styles.headerIcon} />
+                 <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
               </View>
 
               {isLoading ? (
-                <View style={styles.loadingContainer}>
-                   <ActivityIndicator size="large" color={theme.brandBlue} />
-                </View>
+                <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#1a73e8" /></View>
               ) : (
                 <ScrollView contentContainerStyle={styles.contentScroll}>
                   
+                  {/* לוגיקת הצגת כפתורים לפי Roles.js המשותף */}
                   {can_view(fileRole) && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('open')}>
-                      <Image source={ICON_OPEN} style={iconStyle} />
-                      <Text style={[styles.menuItemText, { color: theme.textMain }]}>Open</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {can_view(fileRole) && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('download')}>
-                      <Image source={ICON_DOWNLOAD} style={iconStyle} />
-                      <Text style={[styles.menuItemText, { color: theme.textMain }]}>Download</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {can_edit(fileRole) && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('rename')}>
-                      <Image source={ICON_RENAME} style={iconStyle} />
-                      <Text style={[styles.menuItemText, { color: theme.textMain }]}>Rename</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
-
-                  {can_change_permissions(fileRole) && (
                     <>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('share_file')}>
-                            <Image source={ICON_SHARE} style={iconStyle} />
-                            <Text style={[styles.menuItemText, { color: theme.textMain }]}>Share</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('copy_link')}>
-                            <Image source={ICON_LINK} style={iconStyle} />
-                            <Text style={[styles.menuItemText, { color: theme.textMain }]}>Copy link</Text>
-                        </TouchableOpacity>
+                      <MenuOption label="Open" icon={ICON_OPEN} onPress={() => handleItemClick('open')} />
+                      <MenuOption label="Download" icon={ICON_DOWNLOAD} onPress={() => handleItemClick('download')} />
                     </>
                   )}
 
-                  <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
+                  {can_edit(fileRole) && (
+                    <MenuOption label="Rename" icon={ICON_RENAME} onPress={() => handleItemClick('rename')} />
+                  )}
+
+                  <View style={styles.divider} />
+
+                  {can_change_permissions(fileRole) && (
+                    <>
+                      <MenuOption label="Share" icon={ICON_SHARE} onPress={() => handleItemClick('share_file')} />
+                      <MenuOption label="Copy link" icon={ICON_LINK} onPress={() => handleItemClick('copy_link')} />
+                    </>
+                  )}
+
+                  <View style={styles.divider} />
 
                   {can_edit(fileRole) && can_edit(parentRole) && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('move')}>
-                      <Image source={ICON_MOVE} style={iconStyle} />
-                      <Text style={[styles.menuItemText, { color: theme.textMain }]}>Move</Text>
-                    </TouchableOpacity>
+                    <MenuOption label="Move" icon={ICON_MOVE} onPress={() => handleItemClick('move')} />
                   )}
 
                   {can_view(fileRole) && (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick(isStarred ? 'remove_star' : 'add_star')}>
-                      <Image 
-                        source={isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD} 
-                        // Specific logic for Star: If filled, maybe use brand color, otherwise text color
-                        style={[
-                            isStarred ? styles.menuItemIcon : styles.emptyStarIcon, 
-                            { tintColor: isStarred ? theme.brandBlue : theme.textSecondary }
-                        ]} 
-                      />
-                      <Text style={[styles.menuItemText, { color: theme.textMain }]}>
-                          {isStarred ? "Remove from starred" : "Add to starred"}
-                      </Text>
-                    </TouchableOpacity>
+                    <MenuOption 
+                      label={isStarred ? "Remove from starred" : "Add to starred"} 
+                      icon={isStarred ? ICON_STAR_REMOVE : ICON_STAR_ADD} 
+                      onPress={() => handleItemClick(isStarred ? 'remove_star' : 'add_star')} 
+                    />
                   )}
 
-                  <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
+                  <View style={styles.divider} />
 
                   {can_edit(fileRole) && (
-                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('delete')}>
-                        <Image source={ICON_DELETE} style={iconStyle} />
-                        <Text style={[styles.menuItemText, { color: theme.textMain }]}>Remove</Text>
-                     </TouchableOpacity>
+                    <MenuOption label="Remove" icon={ICON_DELETE} onPress={() => handleItemClick('delete')} />
                   )}
 
-                  {can_edit(fileRole) && isTrashed && (
-                     <TouchableOpacity style={styles.menuItem} onPress={() => handleItemClick('restore')}>
-                        <Image source={ICON_RESTORE} style={iconStyle} />
-                        <Text style={[styles.menuItemText, { color: theme.textMain }]}>Restore</Text>
-                     </TouchableOpacity>
+                  {isTrashed && can_edit(fileRole) && (
+                    <MenuOption label="Restore" icon={ICON_RESTORE} onPress={() => handleItemClick('restore')} />
                   )}
                   
                 </ScrollView>
@@ -280,5 +186,13 @@ const FileActionModal = ({
     </Modal>
   );
 };
+
+// קומפוננטת עזר פנימית לסדר בעיניים
+const MenuOption = ({ label, icon, onPress }: any) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <Image source={icon} style={styles.menuItemIcon} />
+    <Text style={styles.menuItemText}>{label}</Text>
+  </TouchableOpacity>
+);
 
 export default FileActionModal;
