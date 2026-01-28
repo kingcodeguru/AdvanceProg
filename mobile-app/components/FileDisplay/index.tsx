@@ -97,11 +97,11 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
           )}
         </View>
         <View style={styles.viewSwitcher}>
-          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive]}>
-            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.textSecondary} />
+          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive, { backgroundColor: isLineView ? theme.bgMain : 'transparent' }]}>
+            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.bgForm} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive]}>
-            <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.textSecondary} />
+          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive, { backgroundColor: !isLineView ? theme.bgMain : 'transparent' }]}>
+            <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.bgForm} />
           </TouchableOpacity>
         </View>
       </View>

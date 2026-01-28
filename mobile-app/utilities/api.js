@@ -222,7 +222,7 @@ export async function updateFilePermission(fileId, pid, role, uidOfUser) {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ role, uid: uidOfUser })
+        body: JSON.stringify({ role })
     });
     return response;
 }

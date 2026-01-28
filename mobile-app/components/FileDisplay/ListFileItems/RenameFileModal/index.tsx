@@ -3,17 +3,26 @@ import {
   Modal, View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform 
 } from 'react-native';
 
-// הייבוא עובד עכשיו כי שניהם באותה תיקייה חדשה
 import { styles } from './styles';
+
+// 1. Import Theme Hooks
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
 
 interface RenameModalProps {
   visible: boolean;
-  fileName: string | null;
+  // Note: Parent might pass 'currentName' or 'fileName'. 
+  // In the fixed parent code, we passed 'fileName', so sticking to that.
+  fileName: string | null; 
   onClose: () => void;
   onRename: (newName: string) => void;
 }
 
 const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps) => {
+  // 2. Get Current Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
+
   const [nameWithoutExt, setNameWithoutExt] = useState("");
   const [extension, setExtension] = useState("");
   const inputRef = useRef<TextInput>(null);
@@ -41,12 +50,25 @@ const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps)
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>Rename</Text>
-          <View style={styles.inputWrapper}>
+        
+        {/* 3. Dynamic Modal Background */}
+        <View style={[styles.modalContent, { backgroundColor: theme.bgForm }]}>
+          
+          {/* Dynamic Title Color */}
+          <Text style={[styles.title, { color: theme.textMain }]}>Rename</Text>
+
+          <View style={[styles.inputWrapper, { backgroundColor: theme.bgPrimary }]}>
             <TextInput
               ref={inputRef}
-              style={styles.textInput}
+              // 4. Dynamic Input Styles
+              style={[
+                styles.textInput, 
+                { 
+                  color: theme.textMain, 
+                  borderColor: theme.brandBlue 
+                }
+              ]}
+              placeholderTextColor={theme.textSecondary}
               value={nameWithoutExt}
               onChangeText={setNameWithoutExt}
               selectTextOnFocus={true}
@@ -54,12 +76,24 @@ const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps)
               returnKeyType="done"
               autoCorrect={false}
             />
-            {extension ? <Text style={styles.extensionText}>{extension}</Text> : null}
+            {extension ? (
+                // Dynamic Extension Text Color
+                <Text style={[styles.extensionText, { color: theme.textSecondary }]}>
+                    {extension}
+                </Text>
+            ) : null}
           </View>
+          
           <View style={styles.actionsContainer}>
-            <Pressable onPress={onClose}><Text style={styles.buttonTextCancel}>Cancel</Text></Pressable>
-            <Pressable onPress={handleSave}><Text style={styles.buttonTextOk}>OK</Text></Pressable>
+            <Pressable onPress={onClose}>
+                {/* Dynamic Button Color */}
+                <Text style={[styles.buttonTextCancel, { color: theme.brandBlue }]}>Cancel</Text>
+            </Pressable>
+            <Pressable onPress={handleSave}>
+                <Text style={[styles.buttonTextOk, { color: theme.brandBlue }]}>OK</Text>
+            </Pressable>
           </View>
+
         </View>
       </KeyboardAvoidingView>
     </Modal>
