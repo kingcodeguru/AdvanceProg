@@ -12,9 +12,8 @@ import * as api from '@/utilities/api';
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
-// 1. IMPORT COMPONENTS
+// Imported Components
 import PlusModal from './PlusModal';
-import BottomBar from '../BottomBar'; // Adjust path if needed (e.g., '@/components/BottomBar')
 
 const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, folderId }: { refreshSignal?: any, category?: string, searchQuery?: string, folderId?: string }) => {
   const router = useRouter();
@@ -129,12 +128,6 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
           />
         )}
       </View>
-
-      {/* 2. ADD BOTTOM BAR (Visible only when not searching) */}
-      {!searchQuery && (
-        <BottomBar />
-      )}
-
     </SafeAreaView>
   );
 };

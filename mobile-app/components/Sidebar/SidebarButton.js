@@ -7,9 +7,9 @@ import { useTheme } from '../../utilities/ThemeContext';
 
 // Map labels to your actual routes
 const TITLE_TO_PATH = { 
-  'Home': 'all',
+  'Home': 'home',
   'My Drive': 'my-drive', 
-  'Shared with me': 'shared-with-me', 
+  'Shared with me': 'shared', 
   'Recent': 'recent', 
   'Starred': 'starred', 
   'Trash': 'trash'

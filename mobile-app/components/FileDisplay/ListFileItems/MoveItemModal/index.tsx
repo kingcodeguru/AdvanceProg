@@ -31,7 +31,7 @@ import Themes from '@/styles/themes';
 
 // --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
-const DRIVE_ICON = require('@/assets/images/drive_icon.jpg');
+const DRIVE_ICON = FOLDER_ICON;
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
