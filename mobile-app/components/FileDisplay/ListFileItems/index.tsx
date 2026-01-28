@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// --- Imports קריטיים לתיקון שגיאות ---
-// שימוש ב-legacy מונע את שגיאות ה-Deprecated של גרסה 54+
+// שימוש ב-legacy למניעת שגיאות deprecated
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -29,13 +28,12 @@ interface ListFileItemsProps {
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
   const router = useRouter();
   
-  // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // --- Helper: זיהוי סוג קובץ עבור אנדרואיד ---
+  // --- Helper: זיהוי סוג קובץ ---
   const getMimeType = (filename: string) => {
     if (filename.endsWith('.pdf')) return 'application/pdf';
     if (filename.endsWith('.txt')) return 'text/plain';
@@ -98,7 +96,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 4. Download Logic (עם הפרדה לאנדרואיד/iOS) ---
+  // --- 4. Download Logic (עם התיקון הקריטי להרשאות) ---
   const downloadSingleFile = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
@@ -114,22 +112,24 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         encoding = 'base64';
       }
 
-      // --- מקרה א': תמונה (נשמר לגלריה בשתי הפלטפורמות) ---
+      // === תמונות: שמירה לגלריה ===
       if (isImage) {
         const localUri = `${FileSystem.cacheDirectory}${file.name}`;
         await FileSystem.writeAsStringAsync(localUri, content, { encoding });
         
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        // התיקון הקריטי: (true) מבקש רק הרשאת כתיבה ומונע את שגיאת ה-AUDIO
+        const { status } = await MediaLibrary.requestPermissionsAsync(true);
+        
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(localUri);
           Alert.alert("Success", "Saved to gallery!");
         } else {
-          Alert.alert("Permission Required", "Gallery permission needed.");
+          Alert.alert("Permission Required", "Please allow access to save photos.");
         }
         return;
       }
 
-      // --- מקרה ב': קבצים באנדרואיד (שמירה בתיקייה) ---
+      // === קבצים: אנדרואיד (דיאלוג שמירה) ===
       if (Platform.OS === 'android') {
         const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
         
@@ -144,7 +144,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
           Alert.alert("Success", "File saved!");
         }
       } 
-      // --- מקרה ג': קבצים ב-iOS (שיתוף -> Save to Files) ---
+      // === קבצים: iOS (שיתוף) ===
       else {
         const localUri = `${FileSystem.documentDirectory}${file.name}`;
         await FileSystem.writeAsStringAsync(localUri, content, { encoding });
@@ -159,7 +159,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 5. Send Copy Logic (תמיד שיתוף) ---
+  // --- 5. Send Copy Logic ---
   const sendCopyAction = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
@@ -188,7 +188,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     setIsActionModalOpen(false); 
     if (!selectedFile) return;
 
-    // Timeout נותן למודאל להיסגר לפני שפותחים חדש
     setTimeout(async () => {
       switch (actionName) {
         case 'open': 
