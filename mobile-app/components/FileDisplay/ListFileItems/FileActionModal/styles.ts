@@ -70,19 +70,13 @@ export const styles = StyleSheet.create({
   },
   
   menuItemIcon: {
-    width: 28, 
-    height: 28,
-    marginRight: 20, 
-    resizeMode: 'contain',
+    width: 24,  // הקטנתי מעט ל-24 שזה סטנדרט טוב
+    height: 24, // גובה ורוחב זהים
+    marginRight: 20,
+    resizeMode: 'contain', // מבטיח שהתמונה תיכנס בול למסגרת בלי להימתח
     opacity: 0.6,
-  },
-
-  emptyStarIcon: {
-    width: 22,   
-    height: 22,
-    marginRight: 26, 
-    resizeMode: 'contain',
-    opacity: 0.6,
+    // תוספת חשובה: מוודא שהאייקון מיושר לאמצע הגובה של השורה
+    alignSelf: 'center', 
   },
   
   menuItemText: {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Alert } from 'react-native';
+// 1. הוספת Platform לייבוא
+import { View, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// הפתרון לשגיאת ה-Deprecated: ייבוא מהנתיב הישן (Legacy)
+// ייבוא מהנתיב הישן (Legacy) לתיקון שגיאות אקספו
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -84,44 +85,67 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 4. לוגיקה: Download (שימוש ב-Legacy API) ---
+  // --- 4. לוגיקה: Download (מתוקן עבור Web ומובייל) ---
   const downloadSingleFile = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
       if (!response.ok) return;
       const fileData = await response.json();
-      
+
+      // --- תרחיש א': אנחנו בדפדפן (Web) ---
+      if (Platform.OS === 'web') {
+        // יצירת לינק נסתר, לחיצה עליו, ומחיקתו. זה גורם לדפדפן להוריד את הקובץ.
+        const anchor = document.createElement('a');
+        anchor.href = fileData.content; // ה-Data URI מהשרת
+        anchor.download = file.name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        return; // סיימנו
+      }
+
+      // --- תרחיש ב': אנחנו במובייל (iOS/Android) ---
       const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const localUri = `${directory}${file.name}`;
 
       let content = fileData.content;
       let encoding: any = 'utf8'; 
-
       const isImage = file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i);
+
       if (isImage) {
         content = content.replace(/^data:image\/\w+;base64,/, "");
         encoding = 'base64';
       }
 
-      // כאן התיקון: הפקודה עכשיו מגיעה מ-FileSystem/legacy
       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
 
       if (isImage) {
+        // תמונות נשמרות לגלריה בשקט
         const { status } = await MediaLibrary.requestPermissionsAsync();
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(localUri);
           Alert.alert("Success", "Saved to gallery!");
         }
-      } else if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(localUri);
+      } else {
+        // קבצים אחרים: פותחים תפריט שמירה (זה המקביל ל"שמירה בשם" במובייל)
+        if (await Sharing.isAvailableAsync()) {
+          // שינוי קטן: לא שולחים כותרת דיאלוג כדי שזה ירגיש יותר "טבעי" למערכת
+          await Sharing.shareAsync(localUri);
+        }
       }
     } catch (error) {
       console.error("Download error:", error);
+      Alert.alert("Error", "Failed to download.");
     }
   };
 
-  // --- 5. לוגיקה: Send a Copy ---
+  // --- 5. לוגיקה: Send a Copy (נשאר אותו דבר - שיתוף מפורש) ---
   const sendCopyAction = async (file: any) => {
+    if (Platform.OS === 'web') {
+      Alert.alert("Info", "On web, use Download to save the file, then share it manually.");
+      return;
+    }
+
     try {
       const response = await getFileById(file.fid);
       const fileData = await response.json();
@@ -138,6 +162,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       }
 
       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+      // כאן אנחנו מוסיפים כותרת כדי להדגיש שזה שיתוף
       await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
     } catch (error) {
       console.error("Send copy error:", error);
