@@ -210,6 +210,7 @@ export default function PermissionsScreen() {
             if (response.ok) {
                 fetchPermissionsList(); 
             } else {
+                console.log(`Failed to update role for user ${user.email}: ${(await response.json()).error}`);
                 Alert.alert("Error", "Failed to update role.");
             }
         } catch (error) {
