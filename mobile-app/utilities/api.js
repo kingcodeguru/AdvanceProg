@@ -216,6 +216,7 @@ export async function addFilePermission(fileId, email, role) {
 
 async function getPidFromUidAndFid(fid, uid) {
     const token = await getToken();
+    console.log(`fetching: ${IP}/api/files/${encodeURIComponent(fid)}/permissions`)
     const response = await fetch(`${IP}/api/files/${encodeURIComponent(fid)}/permissions`, {
         method: 'GET',
         headers: {
@@ -227,7 +228,10 @@ async function getPidFromUidAndFid(fid, uid) {
     if (response.ok) {
         const permissions = await response.json();
         const permission = permissions.find(p => p.uid === uid);
-        return permission ? permission.id : null;
+        return permission ? permission.pid : null;
+    } else {
+        console.error(`Failed to fetch permissions for file ${fid}: ${response.statusText}`);
+        console.error((await response.json()).error);
     }
 
     return null;

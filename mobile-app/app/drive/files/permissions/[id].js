@@ -214,7 +214,7 @@ export default function PermissionsScreen() {
                 Alert.alert("Error", "Failed to update role.");
             }
         } catch (error) {
-            Alert.alert("Error", "Network error.");
+            Alert.alert("Error", `Network error: ${error.message}`);
         }
     };
 
