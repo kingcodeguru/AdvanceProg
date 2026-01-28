@@ -9,21 +9,23 @@ import {
   ActivityIndicator, 
   SafeAreaView,
   Image,
-  StyleSheet
+  StyleSheet 
 } from 'react-native';
-import { styles } from './styles'; // ודאי שיש לך את הסטיילים הבסיסיים כאן
+import { styles } from './styles';
+
+// API Imports
 import { 
   getFilesByDirectory, 
   patchFile, 
   getFilesBySearch, 
   getFileById, 
-  getAllFiles, 
-  getAllStaredFiles, // לוודא שזה קיים ב-api.js שלך
+  getAllFiles,
+  getAllStaredFiles, 
   getRole 
 } from '@/utilities/api'; 
 import { can_edit } from '@/utilities/roles';
 
-// 1. Import Theme Hooks
+// Theme
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
@@ -32,7 +34,6 @@ const FOLDER_ICON = require('@/assets/images/dir_logo.png');
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
-const ARROW_RIGHT = require('@/assets/images/arrow_right.png'); // ודאי שיש אייקון כזה או דומה
 
 interface MoveFileModalProps {
   visible: boolean;
@@ -54,84 +55,77 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // --- State זהה ל-Web ---
+  // --- State ---
   const [isInit, setIsInit] = useState(true);
   const [originParentId, setOriginParentId] = useState<string | null>(null);
-  const [originParentName, setOriginParentName] = useState('My Drive');
+  const [originParentName, setOriginParentName] = useState<string>('My Drive');
 
   const [activeTab, setActiveTab] = useState<'all' | 'starred'>('all');
   const [currentPath, setCurrentPath] = useState<{fid: string, name: string}[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
-  const [isLoadingFolders, setIsLoadingFolders] = useState(false);
+  const [loading, setLoading] = useState(false);
   
-  const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // --- 1. Initialize (כמו ב-Web) ---
+  // --- 1. Init Logic ---
   useEffect(() => {
     if (visible && fileId) {
       let mounted = true;
-      const initializeModal = async () => {
+      const init = async () => {
         try {
           setIsInit(true);
           const fileRes = await getFileById(fileId);
           const fileData = fileRes.json ? await fileRes.json() : fileRes;
           
-          const parentId = fileData.parent_id;
+          const parentId = fileData.parent_id || 'root';
           if (mounted) setOriginParentId(parentId);
 
           let startName = 'My Drive';
           let startId = 'root';
 
-          if (parentId && parentId !== 'root') {
-            startId = parentId;
-            try {
-              const parentRes = await getFileById(parentId);
-              const parentData = parentRes.json ? await parentRes.json() : parentRes;
-              startName = parentData.name;
-            } catch (e) {
-              startName = 'Unknown Location';
-            }
+          if (parentId !== 'root' && parentId !== null) {
+              startId = parentId;
+             try {
+               const parentRes = await getFileById(parentId);
+               const parentData = parentRes.json ? await parentRes.json() : parentRes;
+               startName = parentData.name || 'Unknown';
+             } catch (err) { console.log("Parent fetch error"); }
           }
-          if (mounted) setOriginParentName(startName);
-
+          
           if (mounted) {
+            setOriginParentName(startName);
             setCurrentPath([{ fid: startId, name: startName }]);
             setIsInit(false);
           }
-        } catch (err) {
-          console.error("Init failed", err);
+        } catch (e) {
           if (mounted) {
+            setOriginParentId('root');
+            setOriginParentName('My Drive');
             setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
             setIsInit(false);
           }
         }
       };
-      initializeModal();
+      init();
       return () => { mounted = false; };
     }
   }, [visible, fileId]);
 
-  // --- Helpers ---
   const currentFolder = currentPath.length > 0 
     ? currentPath[currentPath.length - 1] 
     : { fid: 'root', name: 'My Drive' };
 
-  // מתי להציג את החיפוש? (לפי ה-Web: ב-Starred או כשאנחנו ברוט של All)
-  const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
-
-  // --- 2. Load Folders Logic (הליבה של ה-Web) ---
+  // --- 2. Load Folders Logic ---
   const loadFolders = useCallback(async () => {
-    if (isInit || !visible) return;
-
-    setIsLoadingFolders(true);
+    if (!visible || isInit) return;
+    setLoading(true);
     try {
       let response;
       let isSearch = false;
       const targetId = currentFolder.fid || 'root';
 
-      // בחירת מקור המידע לפי המצב
-      if (searchQuery.length > 0 && showSearchBar) {
+      if (searchQuery.length > 0 && isSearchActive) {
         response = await getFilesBySearch(searchQuery);
         isSearch = true;
       } else if (activeTab === 'starred') {
@@ -144,109 +138,79 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
       if (response && (response.ok || Array.isArray(response))) {
         let data = response.json ? await response.json() : response;
+        if (!Array.isArray(data)) data = data ? [data] : [];
 
-        if (!Array.isArray(data)) {
-          data = (data && typeof data === 'object') ? [data] : [];
-        }
-
-        // נירמול הנתונים
         data = data.map((item: any) => ({
-          ...item,
-          fid: item.fid || item.id,
-          name: item.name || 'Untitled'
+           ...item,
+           fid: item.fid || item.id,
+           name: item.name || 'Untitled',
         }));
 
-        // סינונים ראשוניים
         if (!isSearch && targetId === 'root' && activeTab === 'all') {
-          // ב-Root מציגים רק דברים שאין להם אבא (או שאבא שלהם הוא root)
-          data = data.filter((item: any) => !item.parent_id || item.parent_id === 'root');
+             data = data.filter((item: any) => !item.parent_id || item.parent_id === 'root');
         }
         if (isSearch && activeTab === 'starred') {
-          data = data.filter((item: any) => item.starred === true);
+             data = data.filter((item: any) => item.starred === true);
         }
 
-        // סינון לוגי: רק תיקיות, לא הקובץ עצמו, לא האבא הנוכחי
         const candidates = data.filter((item: any) => 
-          (item.type === 'directory' || item.type === 'dir' || item.type === 'folder') && 
-          item.fid !== fileId && 
-          item.fid !== originParentId &&
-          item.fid !== currentFolder.fid
+           (item.type === 'directory' || item.type === 'dir' || item.type === 'folder') &&
+           item.fid !== fileId &&
+           item.fid !== originParentId && 
+           item.fid !== currentFolder.fid
         );
 
-        // בדיקת הרשאות (Async Filter)
         const allowedFolders: FolderItem[] = [];
-        
-        // אופציה להזיז ל-My Drive אם אנחנו לא שם
-        if (originParentId !== null && originParentId !== 'root' && !isSearch && currentPath.length === 1 && activeTab === 'all') {
-             // הערה: ב-RN אנחנו מוסיפים את זה ידנית לרשימה אם צריך
-             // allowedFolders.push({ fid: 'root', name: 'My Drive', type: 'directory' });
-        }
-
         for (const folder of candidates) {
-          try {
-            const role = await getRole(folder.fid);
-            if (can_edit(role)) {
-              allowedFolders.push(folder);
-            }
-          } catch (e) { console.log(e); }
+            try {
+                const role = await getRole(folder.fid);
+                if (can_edit(role)) allowedFolders.push(folder);
+            } catch(e) {}
         }
-
         setFolders(allowedFolders);
       }
     } catch (error) {
-      console.error("Error loading folders:", error);
+      console.error("Fetch folders failed", error);
       setFolders([]);
     } finally {
-      setIsLoadingFolders(false);
+      setLoading(false);
     }
-  }, [isInit, visible, searchQuery, activeTab, currentFolder.fid, fileId, originParentId, showSearchBar]);
+  }, [visible, searchQuery, currentFolder.fid, fileId, isInit, activeTab, isSearchActive, originParentId]);
 
   useEffect(() => { loadFolders(); }, [loadFolders]);
-
-  // איפוס חיפוש במעבר טאבים
   useEffect(() => { setSearchQuery(''); }, [activeTab, currentFolder.fid]);
-
 
   // --- Actions ---
 
-  const handleFolderSelect = (folder: FolderItem) => {
-    // בלחיצה אחת - בוחרים (כמו ב-Web)
-    if (selectedFolder?.fid === folder.fid) {
-        setSelectedFolder(null); // Deselect
-    } else {
-        setSelectedFolder(folder);
-    }
-  };
-
-  const enterFolder = (folder: FolderItem) => {
-    if (!folder.fid) return;
-    setActiveTab('all');
-    setCurrentPath(prev => [...prev, { fid: folder.fid, name: folder.name }]);
-    setSelectedFolder(null);
+  const handleEnterFolder = (folder: FolderItem) => {
     setSearchQuery('');
+    setActiveTab('all'); 
+    setIsSearchActive(false);
+    setCurrentPath(prev => [...prev, { fid: folder.fid, name: folder.name }]);
   };
 
   const handleGoBack = () => {
+    if (isSearchActive) {
+      setIsSearchActive(false);
+      setSearchQuery('');
+      return;
+    }
+    // אם יש לאן לחזור -> חוזרים
     if (currentPath.length > 1) {
       setCurrentPath(prev => {
         const newPath = [...prev];
         newPath.pop();
         return newPath;
       });
-      setSelectedFolder(null);
     } else {
-       // אם אי אפשר לחזור אחורה יותר, אולי נרצה לסגור או לא לעשות כלום
+      // אם אנחנו בראשי -> סוגרים
+      onClose(); 
     }
   };
 
   const handleMove = async () => {
-    const destinationId = selectedFolder ? selectedFolder.fid : currentFolder.fid;
-    
-    // הגנה: לא להעביר לאותו מקום
-    if (destinationId === originParentId) {
-        onClose();
-        return;
-    }
+    const destinationId = currentFolder.fid;
+    if (destinationId === originParentId) return;
 
     try {
       const res = await patchFile(fileId, { parent_id: destinationId });
@@ -254,115 +218,108 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         onMoveSuccess();
         onClose();
       } else {
-        alert("Failed to move file");
+        alert("Failed to move");
       }
     } catch (error) {
-      console.error("Move error:", error);
+      console.error(error);
       alert("Error moving file");
     }
   };
 
-  // כפתור ה-Move פעיל אם בחרנו תיקייה, או שאנחנו בתוך תיקייה שונה מהמקור
-  const isMoveEnabled = selectedFolder !== null || (currentFolder.fid !== originParentId);
+  const isAtOrigin = currentFolder.fid === originParentId;
+  const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
-  // --- Renders ---
-
-  const renderFolderItem = ({ item }: { item: FolderItem }) => {
-    const isSelected = selectedFolder?.fid === item.fid;
-    
-    return (
-      <TouchableOpacity 
-        style={[
-            localStyles.folderItem, 
-            isSelected && { backgroundColor: theme.bgHover } // הדגשה בבחירה
-        ]} 
-        onPress={() => handleFolderSelect(item)}
-      >
-        <View style={localStyles.itemLeft}>
-          <Image source={FOLDER_ICON} style={styles.folderImage} />
-          <Text style={[styles.folderName, { color: theme.textMain }]} numberOfLines={1}>
+  // --- Render Item (עיצוב מקורי) ---
+  const renderFolderItem = ({ item }: { item: FolderItem }) => (
+    <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
+      <View style={styles.folderIconContainer}>
+        <Image source={FOLDER_ICON} style={styles.folderImage} />
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={[styles.folderName, { color: theme.textMain }]} numberOfLines={1}>
             {item.name}
-          </Text>
-        </View>
-        
-        {/* כפתור חץ כדי להיכנס פנימה (מקביל לדאבל-קליק ב-Web) */}
-        <TouchableOpacity style={localStyles.arrowButton} onPress={() => enterFolder(item)}>
-             {/* אם אין לך אייקון חץ, נשתמש בטקסט זמנית */}
-             <Text style={{color: theme.textSecondary, fontSize: 18}}>{'>'}</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
         <View style={[styles.modalContainer, { backgroundColor: theme.bgMain }]}>
 
-          {/* --- Header --- */}
-          <View style={[styles.header, { borderBottomColor: theme.borderSubtle, flexDirection: 'column', height: 'auto', paddingBottom: 10 }]}>
-             
-             {/* שורת כותרת + סגירה */}
-             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between', marginBottom: 10 }}>
-                <Text style={[styles.headerMainTitle, { color: theme.textMain, fontSize: 18 }]}>
-                    Move "{fileName}"
-                </Text>
-                <TouchableOpacity onPress={onClose}>
-                    <Image source={CLOSE_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary }]} />
+          {/* --- Header (שוחזר למבנה המקורי עם החץ) --- */}
+          {!isSearchActive ? (
+            <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
+              <View style={styles.headerLeft}>
+                {/* החץ תמיד כאן! */}
+                <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+                  <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
                 </TouchableOpacity>
-             </View>
+                
+                <View style={styles.headerTitlesContainer}>
+                    <Text style={[styles.headerMainTitle, { color: theme.textMain }]} numberOfLines={1}>
+                        Move "{fileName}"
+                    </Text>
+                    <Text style={[styles.headerSubTitle, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {isAtOrigin ? `Current dir: ${originParentName}` : currentFolder.name}
+                    </Text>
+                </View>
+              </View>
 
-             {/* שורת מיקום (Breadcrumbs) */}
-             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                {currentPath.length > 1 ? (
-                    <TouchableOpacity onPress={handleGoBack} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.brandBlue, marginRight: 5 }]} />
-                        <Text style={{ color: theme.textMain, fontWeight: '600' }}>{currentFolder.name}</Text>
-                    </TouchableOpacity>
-                ) : (
-                    <Text style={{ color: theme.textSecondary }}>Current: {originParentName}</Text>
-                )}
-             </View>
-          </View>
+              {/* כפתור חיפוש בצד ימין */}
+              {showSearchBar && (
+                <View style={styles.headerRight}>
+                  <TouchableOpacity onPress={() => setIsSearchActive(true)} style={styles.iconButton}>
+                    <Image source={SEARCH_ICON} style={[styles.actionIconImage, { tintColor: theme.textMain }]} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : (
+            // Header במצב חיפוש
+            <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle }]}>
+               <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
+                  <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
+               </TouchableOpacity>
+               
+               <TextInput
+                 style={[styles.searchInput, { color: theme.textMain }]}
+                 placeholder="Search destination"
+                 placeholderTextColor={theme.textSecondary}
+                 value={searchQuery}
+                 onChangeText={setSearchQuery}
+                 autoFocus
+               />
+               
+               {searchQuery.length > 0 && (
+                 <TouchableOpacity onPress={() => setSearchQuery('')}>
+                   <Image source={CLOSE_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary }]} />
+                 </TouchableOpacity>
+               )}
+            </View>
+          )}
 
-          {/* --- Tabs --- */}
-          <View style={localStyles.tabsContainer}>
-             <TouchableOpacity 
-                style={[localStyles.tab, activeTab === 'starred' && localStyles.activeTab]}
-                onPress={() => setActiveTab('starred')}
-             >
-                <Text style={[localStyles.tabText, { color: activeTab === 'starred' ? theme.brandBlue : theme.textSecondary }]}>Starred</Text>
-             </TouchableOpacity>
-             
-             <TouchableOpacity 
-                style={[localStyles.tab, activeTab === 'all' && localStyles.activeTab]}
-                onPress={() => setActiveTab('all')}
-             >
-                <Text style={[localStyles.tabText, { color: activeTab === 'all' ? theme.brandBlue : theme.textSecondary }]}>All locations</Text>
-             </TouchableOpacity>
-          </View>
-
-          {/* --- Search Bar --- */}
-          {showSearchBar && (
-             <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle, marginTop: 0 }]}>
-                <Image source={SEARCH_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary, marginRight: 10 }]} />
-                <TextInput
-                  style={[styles.searchInput, { color: theme.textMain }]}
-                  placeholder="Search folders"
-                  placeholderTextColor={theme.textSecondary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
-                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                      <Image source={CLOSE_ICON} style={[styles.actionIconImage, { tintColor: theme.textSecondary, width: 18, height: 18 }]} />
-                   </TouchableOpacity>
-                )}
+          {/* --- Tabs (רק אם אנחנו בראשי) --- */}
+          {!isSearchActive && currentPath.length === 1 && (
+             <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}>
+                <TouchableOpacity 
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'all' ? theme.brandBlue : 'transparent' }}
+                    onPress={() => setActiveTab('all')}
+                >
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: activeTab === 'all' ? theme.brandBlue : theme.textSecondary }}>All locations</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'starred' ? theme.brandBlue : 'transparent' }}
+                    onPress={() => setActiveTab('starred')}
+                >
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: activeTab === 'starred' ? theme.brandBlue : theme.textSecondary }}>Starred</Text>
+                </TouchableOpacity>
              </View>
           )}
 
-          {/* --- Content List --- */}
-          {isInit || isLoadingFolders ? (
+          {/* --- List --- */}
+          {loading || isInit ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color={theme.brandBlue} />
             </View>
@@ -374,9 +331,9 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
                 <View style={styles.centerContainer}>
-                   <Text style={{ color: theme.textSecondary, marginTop: 20 }}>
-                      {searchQuery ? "No search results" : "No folders here"}
-                   </Text>
+                  <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                      {searchQuery ? "No folders found" : "No folders here"}
+                  </Text>
                 </View>
               }
             />
@@ -384,20 +341,23 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
           {/* --- Footer --- */}
           <View style={[styles.footer, { backgroundColor: theme.bgMain, borderTopColor: theme.borderSubtle }]}>
-            <TouchableOpacity onPress={onClose} style={{ padding: 10 }}>
-              <Text style={{ color: theme.textSecondary }}>Cancel</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={[styles.cancelButtonText, { color: theme.brandBlue }]}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={[
                   styles.moveButton, 
-                  { backgroundColor: isMoveEnabled ? theme.brandBlue : theme.bgHover, opacity: isMoveEnabled ? 1 : 0.7 }
+                  { backgroundColor: isAtOrigin ? theme.bgHover : theme.brandBlue },
               ]}
               onPress={handleMove}
-              disabled={!isMoveEnabled}
+              disabled={isAtOrigin}
             >
-              <Text style={[styles.moveButtonText, { color: isMoveEnabled ? '#fff' : theme.textSecondary }]}>
-                Move
+              <Text style={[
+                  styles.moveButtonText, 
+                  { color: isAtOrigin ? theme.textSecondary : '#fff' }
+              ]}>
+                Move here
               </Text>
             </TouchableOpacity>
           </View>
@@ -407,45 +367,5 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     </Modal>
   );
 };
-
-// סגנונות מקומיים לטאבים ולרשימה
-const localStyles = StyleSheet.create({
-    tabsContainer: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        marginBottom: 5,
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 12,
-        alignItems: 'center',
-        borderBottomWidth: 2,
-        borderBottomColor: 'transparent',
-    },
-    activeTab: {
-        borderBottomColor: '#1a73e8', // Brand Blue
-    },
-    tabText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    folderItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between', // רווח בין השם לחץ
-        padding: 15,
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#f0f0f0',
-    },
-    itemLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    arrowButton: {
-        padding: 10,
-    }
-});
 
 export default MoveItemModal;
