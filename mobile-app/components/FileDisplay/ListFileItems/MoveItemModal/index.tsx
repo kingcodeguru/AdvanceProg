@@ -31,6 +31,7 @@ import Themes from '@/styles/themes';
 
 // --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
+const DRIVE_ICON = require('@/assets/images/drive_icon.jpg'); // אם יש לך אייקון של דרייב, אם לא נשתמש בתיקייה
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
@@ -49,6 +50,7 @@ interface FolderItem {
   type: string;
   parent_id?: string | null;
   starred?: boolean;
+  isRootRedirect?: boolean; // שדה חדש לזיהוי הקיצור ל-My Drive
 }
 
 const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: MoveFileModalProps) => {
@@ -161,6 +163,25 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         );
 
         const allowedFolders: FolderItem[] = [];
+
+        // === התיקון: הוספת My Drive אם אנחנו לא ברוט ===
+        // התנאי מהווב: לא ברוט, לא בחיפוש, אנחנו בשכבה העליונה של המודאל, ובטאב הראשי
+        if (
+            originParentId !== 'root' && 
+            originParentId !== null &&
+            !isSearch && 
+            currentPath.length === 1 && 
+            activeTab === 'all'
+        ) {
+            allowedFolders.push({
+                fid: 'root',
+                name: 'My Drive',
+                type: 'directory',
+                isRootRedirect: true // סימון מיוחד
+            });
+        }
+        // ===============================================
+
         for (const folder of candidates) {
             try {
                 const role = await getRole(folder.fid);
@@ -186,6 +207,15 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     setSearchQuery('');
     setActiveTab('all'); 
     setIsSearchActive(false);
+
+    // === טיפול בלחיצה על My Drive המיוחד ===
+    if (folder.isRootRedirect) {
+        // מאפסים את המסלול ישר ל-Root
+        setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
+        return;
+    }
+
+    // כניסה רגילה לתיקייה
     setCurrentPath(prev => [...prev, { fid: folder.fid, name: folder.name }]);
   };
 
@@ -195,7 +225,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
       setSearchQuery('');
       return;
     }
-    // אם יש לאן לחזור -> חוזרים
     if (currentPath.length > 1) {
       setCurrentPath(prev => {
         const newPath = [...prev];
@@ -203,7 +232,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
         return newPath;
       });
     } else {
-      // אם אנחנו בראשי -> סוגרים
       onClose(); 
     }
   };
@@ -229,14 +257,20 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const isAtOrigin = currentFolder.fid === originParentId;
   const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
-  // --- Render Item (עיצוב מקורי) ---
+  // --- Render Item ---
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
-        <Image source={FOLDER_ICON} style={styles.folderImage} />
+        {/* אם זה הקיצור ל-My Drive, אפשר לשים אייקון אחר או להשאיר תיקייה */}
+        <Image 
+            source={item.isRootRedirect ? DRIVE_ICON : FOLDER_ICON} 
+            // fallback ל-FOLDER_ICON אם אין DRIVE_ICON
+            defaultSource={FOLDER_ICON}
+            style={styles.folderImage} 
+        />
       </View>
       <View style={styles.textContainer}>
-        <Text style={[styles.folderName, { color: theme.textMain }]} numberOfLines={1}>
+        <Text style={[styles.folderName, { color: theme.textMain, fontWeight: item.isRootRedirect ? 'bold' : 'normal' }]} numberOfLines={1}>
             {item.name}
         </Text>
       </View>
@@ -248,36 +282,51 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
         <View style={[styles.modalContainer, { backgroundColor: theme.bgMain }]}>
 
-          {/* --- Header (שוחזר למבנה המקורי עם החץ) --- */}
+          {/* --- Header --- */}
           {!isSearchActive ? (
-            <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
-              <View style={styles.headerLeft}>
-                {/* החץ תמיד כאן! */}
-                <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-                  <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
-                </TouchableOpacity>
-                
-                <View style={styles.headerTitlesContainer}>
-                    <Text style={[styles.headerMainTitle, { color: theme.textMain }]} numberOfLines={1}>
-                        Move "{fileName}"
-                    </Text>
-                    <Text style={[styles.headerSubTitle, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {isAtOrigin ? `Current dir: ${originParentName}` : currentFolder.name}
-                    </Text>
-                </View>
+            <View style={[styles.header, { borderBottomColor: theme.borderSubtle, flexDirection: 'column', height: 'auto', paddingBottom: 10 }]}>
+              
+              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <Text style={[styles.headerMainTitle, { color: theme.textMain, fontSize: 18, marginLeft: 15 }]}>
+                    Move "{fileName}"
+                  </Text>
+                  
+                  {showSearchBar && (
+                      <TouchableOpacity onPress={() => setIsSearchActive(true)} style={[styles.iconButton, { marginRight: 15 }]}>
+                        <Image source={SEARCH_ICON} style={[styles.actionIconImage, { tintColor: theme.textMain }]} />
+                      </TouchableOpacity>
+                  )}
               </View>
 
-              {/* כפתור חיפוש בצד ימין */}
-              {showSearchBar && (
-                <View style={styles.headerRight}>
-                  <TouchableOpacity onPress={() => setIsSearchActive(true)} style={styles.iconButton}>
-                    <Image source={SEARCH_ICON} style={[styles.actionIconImage, { tintColor: theme.textMain }]} />
-                  </TouchableOpacity>
-                </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15 }}>
+                 {currentPath.length > 1 ? (
+                    <TouchableOpacity onPress={handleGoBack} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                       <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.brandBlue, width: 20, height: 20, marginRight: 8 }]} />
+                       <Text style={{ color: theme.textMain, fontWeight: '600', fontSize: 16 }}>{currentFolder.name}</Text>
+                    </TouchableOpacity>
+                 ) : (
+                    <Text style={{ color: theme.textSecondary }}>Current location: {originParentName}</Text>
+                 )}
+              </View>
+
+              {currentPath.length === 1 && (
+                  <View style={{ flexDirection: 'row', marginTop: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}>
+                      <TouchableOpacity 
+                          style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'all' ? theme.brandBlue : 'transparent' }}
+                          onPress={() => setActiveTab('all')}
+                      >
+                          <Text style={{ color: activeTab === 'all' ? theme.brandBlue : theme.textSecondary, fontWeight: '600' }}>All locations</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                          style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'starred' ? theme.brandBlue : 'transparent' }}
+                          onPress={() => setActiveTab('starred')}
+                      >
+                          <Text style={{ color: activeTab === 'starred' ? theme.brandBlue : theme.textSecondary, fontWeight: '600' }}>Starred</Text>
+                      </TouchableOpacity>
+                  </View>
               )}
             </View>
           ) : (
-            // Header במצב חיפוש
             <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle }]}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
                   <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
@@ -300,25 +349,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             </View>
           )}
 
-          {/* --- Tabs (רק אם אנחנו בראשי) --- */}
-          {!isSearchActive && currentPath.length === 1 && (
-             <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}>
-                <TouchableOpacity 
-                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'all' ? theme.brandBlue : 'transparent' }}
-                    onPress={() => setActiveTab('all')}
-                >
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: activeTab === 'all' ? theme.brandBlue : theme.textSecondary }}>All locations</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'starred' ? theme.brandBlue : 'transparent' }}
-                    onPress={() => setActiveTab('starred')}
-                >
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: activeTab === 'starred' ? theme.brandBlue : theme.textSecondary }}>Starred</Text>
-                </TouchableOpacity>
-             </View>
-          )}
-
-          {/* --- List --- */}
+          {/* --- Content --- */}
           {loading || isInit ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color={theme.brandBlue} />
