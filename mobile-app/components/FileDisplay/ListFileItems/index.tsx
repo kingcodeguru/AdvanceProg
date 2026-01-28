@@ -103,6 +103,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       try {
         const res = file.trashed ? await deleteFile(file.fid) : await patchFile(file.fid, { trashed: true });
         if (res.ok && onRefresh) onRefresh();
+        else Alert.alert("Error", `Server Message: ${(await res.json()).error}`);
       } catch (e) { console.error(e); }
     };
 

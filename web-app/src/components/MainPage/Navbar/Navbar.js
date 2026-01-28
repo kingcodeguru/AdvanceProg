@@ -53,7 +53,7 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <div className="logo-section" onClick={() => navigate('/drive/all')} style={{ cursor: 'pointer' }}>
+        <div className="logo-section" onClick={() => navigate('/drive/home')} style={{ cursor: 'pointer' }}>
           <img 
             src="https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png" 
             alt="Logo" 

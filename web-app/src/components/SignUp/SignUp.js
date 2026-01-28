@@ -75,7 +75,7 @@ function SignUp() {
           const data = await response.json();
           if (data.token) {
             localStorage.setItem('userToken', data.token);
-            navigate('/drive/all');
+            navigate('/drive/home');
           }
         }
       } else {
