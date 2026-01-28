@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { View, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// שימוש ב-legacy למניעת שגיאות deprecated (אקספו 54+)
+// Imports
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 
-// API Imports
+// API
 import { patchFile, deleteFile, setStar, getFileById } from '@/utilities/api';
 
-// Components Imports
+// Components
 import ListBoxFileItems from './ListBoxFileItems';
 import ListLineFileItems from './ListLineFileItems';
 import FileActionModal from './FileActionModal';
@@ -28,83 +28,102 @@ interface ListFileItemsProps {
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
   const router = useRouter();
   
+  // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // --- Helper: זיהוי סוג קובץ ---
-  const getMimeType = (filename: string) => {
-    if (filename.endsWith('.pdf')) return 'application/pdf';
-    if (filename.endsWith('.txt')) return 'text/plain';
-    if (filename.endsWith('.doc') || filename.endsWith('.docx')) return 'application/msword';
-    if (filename.endsWith('.xls') || filename.endsWith('.xlsx')) return 'application/vnd.ms-excel';
-    if (filename.endsWith('.ppt') || filename.endsWith('.pptx')) return 'application/vnd.ms-powerpoint';
-    if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) return 'image/jpeg';
-    if (filename.endsWith('.png')) return 'image/png';
-    return 'application/octet-stream';
-  };
+  // === CORE ACTIONS LOGIC (המוח של הקומפוננטה) ===
+  
+  const performFileAction = async (action: string, file: any) => {
+    if (!file) return;
 
-  // --- 1. Rename Logic ---
-  const handleRenameSubmit = async (newName: string) => {
-    if (!selectedFile) return;
-    try {
-      const response = await patchFile(selectedFile.fid, { name: newName });
-      if (response.ok) {
-        setIsRenameModalOpen(false);
-        setSelectedFile(null);
-        if (onRefresh) onRefresh();
-      } else {
-        Alert.alert("Error", "Rename failed");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    switch (action) {
+      case 'open':
+        // פתיחה מיידית - בלי לחכות ל-State!
+        const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
+        router.push(`/drive/${path}/${file.fid}` as any);
+        break;
 
-  // --- 2. Star Logic ---
-  const toggleStar = async (file: any, newStatus: boolean) => {
-    try {
-      const response = await setStar(file.fid, newStatus);
-      if (response.ok && onRefresh) onRefresh();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      case 'toggle_star':
+        // לוגיקה חכמה: הופך את המצב הקיים
+        try {
+          const response = await setStar(file.fid, !file.starred);
+          if (response.ok && onRefresh) onRefresh();
+        } catch (e) { console.error(e); }
+        break;
 
-  // --- 3. Delete Logic ---
-  const deleteAction = async (file: any) => {
-    const performDelete = async () => {
-      try {
-        const response = file.trashed 
-          ? await deleteFile(file.fid) 
-          : await patchFile(file.fid, { trashed: true });
+      case 'rename':
+        setSelectedFile(file); // כאן חייבים State למודאל
+        setIsRenameModalOpen(true);
+        break;
+
+      case 'move':
+        setSelectedFile(file);
+        setIsMoveModalOpen(true);
+        break;
+
+      case 'delete':
+        await handleDelete(file);
+        break;
+
+      case 'download':
+        await handleDownload(file);
+        break;
+      
+      case 'send_copy':
+        await handleSendCopy(file);
+        break;
+
+      case 'restore':
+        try {
+          await patchFile(file.fid, { trashed: false });
+          if (onRefresh) onRefresh();
+        } catch (e) { console.error(e); }
+        break;
+
+      case 'share_file':
+        router.push(`/drive/files/permissions/${file.fid}` as any);
+        break;
         
-        if (response.ok && onRefresh) onRefresh();
-      } catch (error) {
-        console.error(error);
-      }
+      case 'menu':
+        // פתיחת התפריט בלבד
+        setSelectedFile(file);
+        setIsActionModalOpen(true);
+        break;
+    }
+  };
+
+
+  // --- Helper Functions (לוגיקה מסובכת שהוצאנו החוצה) ---
+
+  const handleDelete = async (file: any) => {
+    const execute = async () => {
+      try {
+        const res = file.trashed ? await deleteFile(file.fid) : await patchFile(file.fid, { trashed: true });
+        if (res.ok && onRefresh) onRefresh();
+      } catch (e) { console.error(e); }
     };
 
     if (file.trashed) {
-      Alert.alert("Delete Forever", "This cannot be undone.", [
+      Alert.alert("Delete Forever", "Cannot be undone.", [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: performDelete }
+        { text: "Delete", style: "destructive", onPress: execute }
       ]);
     } else {
-      await performDelete();
+      await execute();
     }
   };
 
-  // --- 4. Download Logic ---
-  const downloadSingleFile = async (file: any) => {
+  const handleDownload = async (file: any) => {
     try {
-      const response = await getFileById(file.fid);
-      if (!response.ok) return;
-      const fileData = await response.json();
-
-      let content = fileData.content;
-      let encoding: any = 'utf8'; 
+      const res = await getFileById(file.fid);
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      let content = data.content;
+      let encoding: any = 'utf8';
       const isImage = file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i);
 
       if (isImage) {
@@ -112,134 +131,78 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         encoding = 'base64';
       }
 
-      // === תמונות: שמירה לגלריה ===
+      // שמירת תמונות
       if (isImage) {
         const localUri = `${FileSystem.cacheDirectory}${file.name}`;
         await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-        
         const { status } = await MediaLibrary.requestPermissionsAsync(true);
-        
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(localUri);
           Alert.alert("Success", "Saved to gallery!");
         } else {
-          Alert.alert("Permission Required", "Allow photo access to save images.");
+          Alert.alert("Permission", "Gallery access needed.");
         }
         return;
       }
 
-      // === קבצים: אנדרואיד (דיאלוג שמירה) ===
+      // שמירת קבצים (Android SAF / iOS Share)
       if (Platform.OS === 'android') {
-        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-        
-        if (permissions.granted) {
-          const mimeType = getMimeType(file.name);
-          const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-            permissions.directoryUri, 
-            file.name, 
-            mimeType
-          );
-          await FileSystem.writeAsStringAsync(newFileUri, content, { encoding });
-          Alert.alert("Success", "File saved!");
+        const perm = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (perm.granted) {
+          const mime = getMimeType(file.name);
+          const uri = await FileSystem.StorageAccessFramework.createFileAsync(perm.directoryUri, file.name, mime);
+          await FileSystem.writeAsStringAsync(uri, content, { encoding });
+          Alert.alert("Success", "Saved!");
         }
-      } 
-      // === קבצים: iOS (שיתוף) ===
-      else {
-        const localUri = `${FileSystem.documentDirectory}${file.name}`;
-        await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-        
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(localUri);
-        }
+      } else {
+        const uri = `${FileSystem.documentDirectory}${file.name}`;
+        await FileSystem.writeAsStringAsync(uri, content, { encoding });
+        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
       }
-    } catch (error) {
-      console.error("Download error:", error);
-      Alert.alert("Error", "Download failed.");
-    }
+    } catch (e) { console.error(e); Alert.alert("Error", "Download failed"); }
   };
 
-  // --- 5. Send Copy Logic ---
-  const sendCopyAction = async (file: any) => {
+  const handleSendCopy = async (file: any) => {
     try {
-      const response = await getFileById(file.fid);
-      const fileData = await response.json();
+      const res = await getFileById(file.fid);
+      const data = await res.json();
+      const uri = `${FileSystem.cacheDirectory}${file.name}`;
       
-      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-      const localUri = `${directory}${file.name}`;
-      
-      let content = fileData.content;
+      let content = data.content;
       let encoding: any = 'utf8';
-
       if (file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i)) {
         content = content.replace(/^data:image\/\w+;base64,/, "");
         encoding = 'base64';
       }
-
-      await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-      await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
-    } catch (error) {
-      console.error("Send copy error:", error);
-    }
+      
+      await FileSystem.writeAsStringAsync(uri, content, { encoding });
+      await Sharing.shareAsync(uri, { dialogTitle: `Send ${file.name}` });
+    } catch (e) { console.error(e); }
   };
 
-  // --- Main Signal Handler (תיקון: נוסף toggle_star) ---
-  const handleListSignal = (signal: string, file: any) => {
-    if (signal === 'open') {
-      const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
-      router.push(`/drive/${path}/${file.fid}` as any);
-    } else if (signal === 'menu') {
-      setSelectedFile(file);
-      setIsActionModalOpen(true); 
-    } else if (signal === 'toggle_star') {
-      // הנה התיקון! לחיצה ישירה על הכוכב ברשימה
-      toggleStar(file, !file.starred);
-    }
+  const getMimeType = (filename: string) => {
+    if (filename.endsWith('.pdf')) return 'application/pdf';
+    if (filename.endsWith('.jpg')) return 'image/jpeg';
+    if (filename.endsWith('.png')) return 'image/png';
+    return 'application/octet-stream';
   };
 
-  // --- Modal Action Handler ---
-  const handleModalAction = async (actionName: string) => {
-    setIsActionModalOpen(false); 
-    if (!selectedFile) return;
-
-    setTimeout(async () => {
-      switch (actionName) {
-        case 'open': 
-           handleListSignal('open', selectedFile);
-           break;
-        case 'rename': setIsRenameModalOpen(true); break;
-        case 'move': setIsMoveModalOpen(true); break;
-        case 'add_star': await toggleStar(selectedFile, true); break;
-        case 'remove_star': await toggleStar(selectedFile, false); break;
-        case 'delete': await deleteAction(selectedFile); break;
-        case 'download': await downloadSingleFile(selectedFile); break;
-        case 'send_copy': await sendCopyAction(selectedFile); break;
-        case 'restore': 
-          try {
-            const res = await patchFile(selectedFile.fid, { trashed: false });
-            if (res.ok && onRefresh) onRefresh();
-          } catch (e) { console.error(e); }
-          break;
-        case 'share_file':
-          router.push(`/drive/files/permissions/${selectedFile.fid}` as any);
-          break;
-      }
-      if (actionName !== 'rename' && actionName !== 'move') setSelectedFile(null);
-    }, 300);
-  };
+  // --- UI Render ---
 
   return (
     <View style={{ flex: 1, width: '100%' }}>
+      {/* הרשימה קוראת ישירות ל-performFileAction */}
       {viewMode === 'line' ? (
         <ListLineFileItems 
           files={files} 
-          onAction={handleListSignal} 
+          onAction={(action, file) => performFileAction(action, file)} 
           onScroll={onScroll} 
         />
       ) : (
         <ListBoxFileItems 
           files={files} 
           showFooter={showFooter} 
-          onAction={handleListSignal} 
+          onAction={(action, file) => performFileAction(action, file)} 
           onScroll={onScroll} 
         />
       )}
@@ -254,14 +217,21 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
             fileType={selectedFile.type}
             isStarred={selectedFile.starred}
             isTrashed={selectedFile.trashed}
-            onAction={handleModalAction}
+            onAction={(action) => {
+              // המודאל סוגר את עצמו, ואז אנחנו מריצים את הפעולה
+              setIsActionModalOpen(false);
+              setTimeout(() => performFileAction(action, selectedFile), 300);
+            }}
           />
 
           <RenameFileModal
             visible={isRenameModalOpen}
             fileName={selectedFile.name} 
             onClose={() => { setIsRenameModalOpen(false); setSelectedFile(null); }}
-            onRename={handleRenameSubmit}
+            onRename={async (newName) => {
+              const res = await patchFile(selectedFile.fid, { name: newName });
+              if (res.ok) { setIsRenameModalOpen(false); setSelectedFile(null); if (onRefresh) onRefresh(); }
+            }}
           />
 
           <MoveItemModal
