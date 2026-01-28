@@ -1,0 +1,31 @@
+ ERROR  Send copy error: [Error: Method writeAsStringAsync imported from "expo-file-system" is deprecated.
+You can migrate to the new filesystem API using "File" and "Directory" classes or import the legacy API from "expo-file-system/legacy".
+API reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/] 
+
+Code: index.tsx
+  142 |       }
+  143 |
+> 144 |       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+      |                                          ^
+  145 |       await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
+  146 |     } catch (error) {
+  147 |       console.error("Send copy error:", error);
+Call Stack
+  sendCopyAction (components/FileDisplay/ListFileItems/index.tsx:144:42)
+ WARN  Method writeAsStringAsync imported from "expo-file-system" is deprecated.
+You can migrate to the new filesystem API using "File" and "Directory" classes or import the legacy API from "expo-file-system/legacy".
+API reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/
+ ERROR  Download error: [Error: Method writeAsStringAsync imported from "expo-file-system" is deprecated.
+You can migrate to the new filesystem API using "File" and "Directory" classes or import the legacy API from "expo-file-system/legacy".
+API reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/] 
+
+Code: index.tsx
+  108 |       }
+  109 |
+> 110 |       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+      |                                          ^
+  111 |
+  112 |       if (isImage) {
+  113 |         const { status } = await MediaLibrary.requestPermissionsAsync();
+Call Stack
+  downloadSingleFile (components/FileDisplay/ListFileItems/index.tsx:110:42)

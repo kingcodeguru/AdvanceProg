@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -14,7 +14,7 @@ import {
     Image 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as api from '../utilities/api';
 
@@ -37,8 +37,7 @@ export default function Navbar({ onMenuPress }) {
         email: '',
         avatar: null 
     });
-
-    // --- Data Fetching ---
+// --- Data Fetching ---
     const fetchUserData = async () => {
         try {
             const response = await api.getMyDetails();
@@ -55,11 +54,9 @@ export default function Navbar({ onMenuPress }) {
         }
     };
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchUserData();
-        }, [])
-    );
+    useEffect(() => {
+        fetchUserData();
+    }, []);
 
     // --- Event Handlers ---
     const handleSearch = () => {
