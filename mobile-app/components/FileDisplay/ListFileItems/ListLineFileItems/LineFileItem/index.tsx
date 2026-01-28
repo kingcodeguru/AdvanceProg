@@ -8,6 +8,10 @@ import {
 } from 'react-native';
 import { styles } from './styles';
 
+// 1. Import Theme Hook
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
+
 const DOC_ICON = require('@/assets/images/docs_logo.png');
 const PIC_ICON = require('@/assets/images/picture_logo.png');
 const DIR_ICON = require('@/assets/images/dir_logo.png');
@@ -30,6 +34,10 @@ interface LineFileItemProps {
 }
 
 const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => {
+  // 2. Get Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
+
   const { name, type, last_modified } = fileData;
 
   const getIcon = () => {
@@ -45,7 +53,7 @@ const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => 
   const dateString = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <TouchableWithoutFeedback onPress={onPress} onLongPress={onMenuPress}>
         <View style={styles.rowContainer}>
           
@@ -54,23 +62,29 @@ const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => 
             <Image source={getIcon()} style={styles.fileIcon} />
           </View>
 
-          {/* Text Info */}
+          {/* Text Info (Dynamic Colors) */}
           <View style={styles.textContainer}>
-            <Text style={styles.fileName} numberOfLines={1}>
+            <Text 
+              style={[styles.fileName, { color: theme.textMain }]} 
+              numberOfLines={1}
+            >
               {name}
             </Text>
-            <Text style={styles.fileDetails} numberOfLines={1}>
+            <Text 
+              style={[styles.fileDetails, { color: theme.textSecondary }]} 
+              numberOfLines={1}
+            >
               You opened • {dateString}
             </Text>
           </View>
 
-          {/* Menu Dots */}
+          {/* Menu Dots (Dynamic Color) */}
           <TouchableOpacity 
-            style={styles.menuBtn} 
+            style={[styles.menuBtn, { backgroundColor: theme.bgForm }]} 
             onPress={onMenuPress}
             activeOpacity={0.6}
           >
-            <Text style={styles.menuText}>...</Text>
+            <Text style={[styles.menuText, { color: theme.textSecondary }]}>...</Text>
           </TouchableOpacity>
 
         </View>

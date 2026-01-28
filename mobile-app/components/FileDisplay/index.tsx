@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, TouchableOpacity, ActivityIndicator, SafeAreaView, 
-  Alert, Modal, Animated, Image, NativeSyntheticEvent, NativeScrollEvent, StyleSheet 
+  Alert, Modal, Animated, Image, NativeSyntheticEvent, NativeScrollEvent, StyleSheet, 
+  ImageBackground
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,11 +14,18 @@ import { styles } from './styles';
 import ListFileItems from './ListFileItems';
 import * as api from '@/utilities/api'; 
 
+// 1. Import Theme Hook and Data
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
+
 const PLUS_ICON = require('@/assets/images/plus_google.png'); 
 
 const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, folderId }: { refreshSignal?: any, category?: string, searchQuery?: string, folderId?: string }) => {
-  console.log(`Category: ${category}, Search Query: ${searchQuery}, Folder ID: ${folderId}`);
   const router = useRouter();
+
+  // 2. Get Current Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,12 +34,10 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [refreshInternal, setRefreshInternal] = useState(false);
 
-
   const fabOpacity = useRef(new Animated.Value(1)).current;
   const overlayFade = useRef(new Animated.Value(0)).current;
   const isFabHidden = useRef(false); 
 
-  // --- לוגיקה זהה לווב (Sidebar.js) ---
   const triggerRefresh = () => setRefreshInternal(prev => !prev);
 
   const sendToFileAPI = async (payload: any) => {
@@ -97,11 +103,11 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
         triggerRefresh();
       }
     } catch (err) { 
-        console.log("Upload Error (Server might be down):", err);
+        console.log("Upload Error:", err);
     }
   };
 
-  // --- ניהול תפריט ---
+  // --- Menu Animation ---
   const openMenu = () => {
     setIsMenuOpen(true);
     Animated.timing(overlayFade, { toValue: 1, duration: 150, useNativeDriver: true }).start();
@@ -119,7 +125,7 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
       isFabHidden.current = shouldHide;
       Animated.timing(fabOpacity, {
         toValue: shouldHide ? 0 : 1,
-        duration: 200, // Increased duration slightly for smoothness
+        duration: 200,
         useNativeDriver: true
       }).start();
     }
@@ -136,12 +142,25 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
 
       if (response?.ok) {
         const data = await response.json();
-        setFiles(folderId ? data.sub_filedirs : data);
-        if (folderId) setPageName(data.name);
-        else if (category) {
-          const names: any = { all: 'Home', 'my-drive': 'My Drive', recent: 'Recent', starred: 'Starred', bin: 'Trash' };
-          setPageName(names[category as string] || 'Home');
+        
+        // --- 3. SAFETY CRASH FIX: Ensure Array ---
+        let safeFiles: any[] = [];
+        if (folderId) {
+            safeFiles = Array.isArray(data.sub_filedirs) ? data.sub_filedirs : [];
+            setPageName(data.name || "Folder");
+        } else {
+            if (Array.isArray(data)) safeFiles = data;
+            else if (data && Array.isArray(data.files)) safeFiles = data.files;
+            else safeFiles = [];
+
+            if (category) {
+                const names: any = { all: 'Home', 'my-drive': 'My Drive', recent: 'Recent', starred: 'Starred', bin: 'Trash', 'shared-with-me': 'Shared with Me' };
+                setPageName(names[category as string] || 'Home');
+            } else if (searchQuery) {
+                setPageName(`Search "${searchQuery}"`);
+            }
         }
+        setFiles(safeFiles);
       }
     } catch (e) { setFiles([]); } finally { setLoading(false); }
   }, [category, searchQuery, folderId, refreshInternal, externalRefresh]);
@@ -149,57 +168,101 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   useEffect(() => { fetchWorkspaceData(); }, [fetchWorkspaceData]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    // 4. Dynamic Background
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
+      
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           {!searchQuery && (
             <>
               {folderId && (
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                  <MaterialIcons name="arrow-back" size={24} color="#5f6368" />
+                  <MaterialIcons name="arrow-back" size={24} color={theme.textSecondary} />
                 </TouchableOpacity>
               )}
-              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{pageName}</Text>
+              {/* Dynamic Title Color */}
+              <Text style={[styles.title, { color: theme.textMain }]} numberOfLines={1} ellipsizeMode="tail">
+                {pageName}
+              </Text>
             </>
           )}
         </View>
-        <View style={styles.viewSwitcher}>
-          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive]}>
-            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? "#1a73e8" : "#5f6368"} />
+        <View style={[styles.viewSwitcher, { backgroundColor: theme.bgForm }]}>
+          {/* Switcher Buttons: Brand Blue if active, Secondary Text if inactive */}
+          <TouchableOpacity onPress={() => setIsLineView(true)} style={[styles.switchBtn, isLineView && styles.switchBtnActive, { backgroundColor: isLineView ? theme.bgMain : 'transparent' }]}>
+            <MaterialIcons name="format-list-bulleted" size={26} color={isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive]}>
-            <MaterialIcons name="grid-view" size={26} color={!isLineView ? "#1a73e8" : "#5f6368"} />
+          <TouchableOpacity onPress={() => setIsLineView(false)} style={[styles.switchBtn, !isLineView && styles.switchBtnActive, { backgroundColor: !isLineView ? theme.bgMain : 'transparent' }]}>
+            <MaterialIcons name="grid-view" size={26} color={!isLineView ? theme.brandBlue : theme.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={{ flex: 1 }}>
         {loading ? (
-          <View style={styles.centerContainer}><ActivityIndicator size="large" color="#1a73e8" /></View>
+          <View style={styles.centerContainer}><ActivityIndicator size="large" color={theme.brandBlue} /></View>
         ) : (
-          <ListFileItems files={files} viewMode={isLineView ? 'line' : 'box'} onRefresh={fetchWorkspaceData} onScroll={handleScroll} />
+          <ListFileItems 
+            files={files || []} 
+            viewMode={isLineView ? 'line' : 'box'} 
+            onRefresh={fetchWorkspaceData} 
+            onScroll={handleScroll} 
+          />
         )}
+        
+        {/* FAB (Plus Button) */}
         {!searchQuery && (
-          <Animated.View style={[styles.fab, { opacity: fabOpacity }]}>
-            <TouchableOpacity onPress={openMenu}><Image source={PLUS_ICON} style={styles.fabIcon} /></TouchableOpacity>
+          <Animated.View style={[styles.fab, { opacity: fabOpacity, transform: [{ scale: fabOpacity }] }]}>
+            <TouchableOpacity onPress={openMenu}>
+                <Image source={PLUS_ICON} style={styles.fabIcon} />
+            </TouchableOpacity>
           </Animated.View>
         )}
       </View>
 
+      {/* Modal Menu */}
       <Modal visible={isMenuOpen} transparent animationType="slide" onRequestClose={closeMenu}>
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           <Animated.View style={[StyleSheet.absoluteFill, styles.modalOverlay, { opacity: overlayFade }]}>
             <TouchableOpacity style={{ flex: 1 }} onPress={closeMenu} />
           </Animated.View>
           
-          {/* תפריט עם ארבעת השדות המדויקים מהווב */}
-          <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
-            <MenuOption label="New folder" icon="create-new-folder" onPress={createFolder} />
-            <MenuOption label="New text file" icon="note-add" onPress={createTextFile} />
-            <View style={styles.menuDivider} />
-            <MenuOption label="File upload" icon="upload-file" onPress={() => handleUpload('upload-text')} />
-            <MenuOption label="Image upload" icon="image" onPress={() => handleUpload('upload-image')} />
+          {/* Dynamic Modal Content Background */}
+          <View style={[styles.modalContent, { backgroundColor: theme.bgForm }]}>
+            <View style={[styles.modalHandle, { backgroundColor: theme.borderSubtle }]} />
+            
+            <MenuOption 
+                label="New folder" 
+                icon="create-new-folder" 
+                onPress={createFolder} 
+                color={theme.textSecondary} 
+                textColor={theme.textMain} 
+            />
+            <MenuOption 
+                label="New text file" 
+                icon="note-add" 
+                onPress={createTextFile} 
+                color={theme.textSecondary} 
+                textColor={theme.textMain}
+            />
+            
+            <View style={[styles.menuDivider, { backgroundColor: theme.borderSubtle }]} />
+            
+            <MenuOption 
+                label="File upload" 
+                icon="upload-file" 
+                onPress={() => handleUpload('upload-text')} 
+                color={theme.textSecondary} 
+                textColor={theme.textMain}
+            />
+            <MenuOption 
+                label="Image upload" 
+                icon="image" 
+                onPress={() => handleUpload('upload-image')} 
+                color={theme.textSecondary} 
+                textColor={theme.textMain}
+            />
           </View>
         </View>
       </Modal>
@@ -207,10 +270,13 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   );
 };
 
-const MenuOption = ({ label, icon, onPress, color = "#5f6368" }: any) => (
+// 5. Updated Helper Component to accept dynamic colors
+const MenuOption = ({ label, icon, onPress, color = "#5f6368", textColor = "#333" }: any) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <View style={styles.menuIconContainer}><MaterialIcons name={icon} size={24} color={color} /></View>
-    <Text style={styles.menuText}>{label}</Text>
+    <View style={styles.menuIconContainer}>
+        <MaterialIcons name={icon} size={24} color={color} />
+    </View>
+    <Text style={[styles.menuText, { color: textColor }]}>{label}</Text>
   </TouchableOpacity>
 );
 

@@ -3,6 +3,10 @@ import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from '
 import { styles } from './styles';
 import BoxFileItem from './BoxFileItem'; 
 
+// 1. Import Theme Hook
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
+
 const EMPTY_FOLDER_IMG = require('@/assets/images/empty_folder-removebg.png');
 
 interface FileData {
@@ -23,12 +27,14 @@ interface ListBoxFileItemsProps {
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
-// 1. הוספתי את onScroll כאן ב-Destructuring
 const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: ListBoxFileItemsProps) => {
+  // 2. Get Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // פונקציה פנימית לרינדור מצב ריק בתוך ה-FlatList
   const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
+    // Dynamic Background for Empty State
+    <View style={[styles.emptyContainer, { backgroundColor: theme.bgPrimary }]}>
       <Image 
         source={EMPTY_FOLDER_IMG} 
         style={styles.emptyImage} 
@@ -38,15 +44,14 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: List
   );
 
   return (
-    <View style={styles.container}>
+    // Dynamic Background for Main Container
+    <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <FlatList
         data={files || []}
-        // 2. חיבור ה-onScroll
+        
         onScroll={onScroll}
         scrollEventThrottle={16}
         
-        // 3. שימוש ב-ListEmptyComponent במקום return מוקדם
-        // זה מבטיח שה-FlatList תמיד קיים וה-onScroll תמיד מחובר
         ListEmptyComponent={renderEmptyComponent}
         
         keyExtractor={(item) => item.fid}
@@ -60,6 +65,7 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: List
             showFooter={showFooter}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}
+            // Optional: Pass theme down if needed
           />
         )}
       />

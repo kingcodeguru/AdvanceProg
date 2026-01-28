@@ -9,6 +9,10 @@ import {
 import { styles } from './styles';
 import FilePreview from '../FilePreview';
 
+// 1. Import Theme Hook
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
+
 const DOC_ICON = require('@/assets/images/docs_logo.png');
 const PIC_ICON = require('@/assets/images/picture_logo.png');
 const DIR_ICON = require('@/assets/images/dir_logo.png');
@@ -32,6 +36,10 @@ interface BoxFileItemProps {
 }
 
 const BoxFileItem = ({ fileData, showFooter = true, onPress, onMenuPress }: BoxFileItemProps) => {
+  // 2. Get Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
+
   const { name, type } = fileData;
 
   const getSmallIcon = () => {
@@ -44,28 +52,43 @@ const BoxFileItem = ({ fileData, showFooter = true, onPress, onMenuPress }: BoxF
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <TouchableWithoutFeedback onPress={onPress} onLongPress={onMenuPress}>
-        <View style={styles.cardContainer}>
+        {/* 3. Apply Dynamic Background and Border to Card
+           We use 'bgForm' (which is #ffffff in light, and #3c3e42 in dark) 
+           This makes the card pop against the background.
+        */}
+        <View style={[
+            styles.cardContainer, 
+            { 
+              backgroundColor: theme.bgForm,
+              borderColor: theme.borderSubtle 
+            }
+        ]}>
           
           {/* --- Preview Area --- */}
-          <View style={styles.previewArea}>
-             {/* פשוט ונקי - בלי wrapper ובלי padding */}
+          {/* Usually previews have their own background, but we can tint if needed */}
+          <View style={[styles.previewArea, { backgroundColor: isDarkMode ? '#2d2f31' : '#f1f3f4' }]}>
              <FilePreview type={type} />
           </View>
 
           {/* --- Footer Area --- */}
-          <View style={styles.footerArea}>
+          <View style={[styles.footerArea, { backgroundColor: isDarkMode ? '#2d2f31' : '#f1f3f4' }]}>
             <Image source={getSmallIcon()} style={styles.smallTypeIcon} />
             <View style={styles.fileTitleContainer}>
-               <Text style={styles.fileTitle} numberOfLines={1}>{name}</Text>
+               <Text 
+                 style={[styles.fileTitle, { color: theme.textMain }]} 
+                 numberOfLines={1}
+               >
+                 {name}
+               </Text>
             </View>
             <TouchableOpacity 
-              style={styles.actionBtn} 
+              style={[styles.actionBtn, { backgroundColor: theme.bgForm }]} 
               onPress={onMenuPress}
               activeOpacity={0.6}
             >
-              <Text style={styles.actionMenuText}>...</Text>
+              <Text style={[styles.actionMenuText, { color: theme.textSecondary }]}>...</Text>
             </TouchableOpacity>
           </View>
 

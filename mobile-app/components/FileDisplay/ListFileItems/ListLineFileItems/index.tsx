@@ -2,10 +2,13 @@ import React from 'react';
 import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './styles';
 
-// ייבוא השורה הבודדת
+// Import Single Item Component
 import LineFileItem from './LineFileItem'; 
 
-// תמונת "תיקייה ריקה"
+// 1. Import Theme Hook
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
+
 const EMPTY_FOLDER_IMG = require('@/assets/images/empty_folder-removebg.png');
 
 interface FileData {
@@ -22,14 +25,18 @@ interface FileData {
 interface ListLineFileItemsProps {
   files: FileData[] | null | undefined;
   onAction: (actionName: string, file: FileData) => void;
-  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void; // הוספת ה-Prop
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void; 
 }
 
 const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps) => {
+  // 2. Get Theme
+  const { isDarkMode } = useTheme();
+  const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // פונקציה פנימית לרינדור מצב ריק (Empty State) בתוך ה-FlatList
+  // Render Empty State
   const renderEmptyComponent = () => (
-    <View style={styles.emptyContainer}>
+    // Dynamic Background for Empty State
+    <View style={[styles.emptyContainer, { backgroundColor: theme.bgPrimary }]}>
       <Image 
         source={EMPTY_FOLDER_IMG} 
         style={styles.emptyImage} 
@@ -39,22 +46,20 @@ const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps
   );
 
   return (
-    <View style={styles.container}>
+    // Dynamic Background for Main Container
+    <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <FlatList
         data={files || []}
         keyExtractor={(item) => item.fid}
         
-        // --- חיבור האנימציה של ה-FAB ---
         onScroll={onScroll}
-        scrollEventThrottle={16} // מבטיח דגימת גלילה תכופה לאנימציה חלקה
+        scrollEventThrottle={16} 
         
-        // --- טיפול במצב ריק ---
         ListEmptyComponent={renderEmptyComponent}
         
-        // הגדרות עיצוב לרשימה
         contentContainerStyle={[
           styles.listContent,
-          (!files || files.length === 0) && { flex: 1 } // מבטיח מרכוז כשהרשימה ריקה
+          (!files || files.length === 0) && { flex: 1 } 
         ]}
         showsVerticalScrollIndicator={false}
         
@@ -63,6 +68,8 @@ const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps
             fileData={item}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}
+            // Optional: You can pass the theme down if LineFileItem doesn't use the hook itself
+            // theme={theme} 
           />
         )}
       />

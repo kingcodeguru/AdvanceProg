@@ -97,6 +97,7 @@ services:
       - WS_IP=web_server
       - WS_PORT=8080
     command: ["npm", "start"]
+
   # --------------------------------------------------------------------------
   # seventh executable: mongo database
   # --------------------------------------------------------------------------
@@ -108,3 +109,20 @@ services:
       - "27017:27017"
     volumes:
       - mongo_volume:/data/db
+    
+  # --------------------------------------------------------------------------
+  # eighth executable: mobile app
+  # --------------------------------------------------------------------------
+  mobile_app:
+    profiles: ["drive"]
+    build:
+      context: ./mobile-app
+      dockerfile: Dockerfile.app
+    container_name: drive-mobile-app
+    ports:
+      - "8081:8081"
+    environment:
+      - MOBILE_PORT=8081
+      - WS_IP=web_server
+      - WS_PORT=8080
+    command: ["npx", "expo", "start"]
