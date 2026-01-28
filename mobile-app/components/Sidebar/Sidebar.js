@@ -1,130 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
     View, Text, Modal, StyleSheet, TouchableOpacity, 
-    Pressable, TextInput, Alert, ScrollView, Platform, TouchableWithoutFeedback 
+    ScrollView, Platform, TouchableWithoutFeedback 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as api from '../../utilities/api'; // Adjust path
-import { useRefresh } from '../../context/RefreshContext';
 import SidebarButton from './SidebarButton';
 
+import { useTheme } from '../../utilities/ThemeContext';
+import Themes from '../../styles/themes';
+
 export default function Sidebar({ visible, onClose }) {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const { triggerRefresh } = useRefresh();
-    
-    // --- Input Modal State (For naming files/folders) ---
-    const [inputVisible, setInputVisible] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const [inputType, setInputType] = useState(''); // 'folder' or 'text'
+    const { isDarkMode, toggleTheme } = useTheme();
+    const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
     const menuItems = [
         'Home', 'My Drive', 'Shared with me', 'Recent', 'Starred', 'Trash'
     ];
-
-    // --- Helpers ---
-    const getCurrentDir = async () => {
-        return await AsyncStorage.getItem('currentDir') || null;
-    };
-
-    const sendToFileAPI = async (payload) => {
-        try {
-            const response = await api.postFiledir(payload);
-            if (response.ok || response.status === 201) return true;
-        } catch (err) {
-            console.error("API Error:", err);
-            Alert.alert("Error", "Action failed");
-        }
-        return false;
-    };
-
-    // --- Actions ---
-
-    // 1. Prepare Input for Folder/Text
-    const initiateCreate = (type) => {
-        setIsDropdownOpen(false); // Close "New" menu
-        // We need a small delay/timeout if we are closing the sidebar modal
-        // But here we keep sidebar open, just open input modal on top
-        setInputType(type);
-        setInputValue('');
-        setInputVisible(true);
-    };
-
-    // 2. Submit Creation
-    const handleCreateSubmit = async () => {
-        if (!inputValue.trim()) return;
-        
-        const parentId = await getCurrentDir();
-        const isFile = inputType === 'text';
-        
-        await sendToFileAPI({
-            name: inputValue,
-            is_file: isFile,
-            content: isFile ? "" : undefined,
-            parent_id: parentId,
-            type: isFile ? "text" : undefined
-        });
-
-        setInputVisible(false);
-        triggerRefresh();
-        onClose(); // Close sidebar after success
-    };
-
-    // 3. Upload Logic
-    const handleUpload = async (type) => {
-        setIsDropdownOpen(false);
-        const parentId = await getCurrentDir();
-
-        try {
-            if (type === 'image') {
-                const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                    base64: true,
-                    quality: 0.7,
-                });
-
-                if (!result.canceled) {
-                    const asset = result.assets[0];
-                    await sendToFileAPI({
-                        name: asset.fileName || "image.jpg",
-                        is_file: true,
-                        content: `data:image/jpeg;base64,${asset.base64}`,
-                        parent_id: parentId,
-                        type: "image"
-                    });
-                    triggerRefresh();
-                    onClose();
-                }
-            } else {
-                // Text/Doc upload
-                const result = await DocumentPicker.getDocumentAsync({
-                    type: ['text/*', 'application/json', 'text/javascript'],
-                    copyToCacheDirectory: true
-                });
-
-                if (result.assets && result.assets.length > 0) {
-                    const file = result.assets[0];
-                    // Note: Ensure you have expo-file-system to read content
-                    const FileSystem = require('expo-file-system');
-                    const content = await FileSystem.readAsStringAsync(file.uri);
-
-                    await sendToFileAPI({
-                        name: file.name,
-                        is_file: true,
-                        content: content,
-                        parent_id: parentId,
-                        type: "text"
-                    });
-                    triggerRefresh();
-                    onClose();
-                }
-            }
-        } catch (e) {
-            console.log("Upload error", e);
-        }
-    };
 
     return (
         <Modal
@@ -134,20 +25,25 @@ export default function Sidebar({ visible, onClose }) {
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
-                {/* Clicking outside closes the sidebar */}
+                {/* Clicking backdrop closes the sidebar */}
                 <TouchableWithoutFeedback onPress={onClose}>
                     <View style={styles.backdrop} />
                 </TouchableWithoutFeedback>
 
-                {/* Main Sidebar Content */}
-                <View style={styles.sidebarContainer}>
+                {/* SIDEBAR CONTAINER:
+                   Using 'bgPrimary' because it is #ffffff in Light and #37393b in Dark 
+                */}
+                <View style={[styles.sidebarContainer, { backgroundColor: theme.bgPrimary }]}>
+                    
                     <View style={styles.headerSpacer} />
                     
-                    {/* Brand / Logo Area */}
-                    <Text style={styles.brandTitle}>LOT Drive</Text>
+                    {/* Brand Title */}
+                    <Text style={[styles.brandTitle, { color: theme.textMain }]}>
+                        LOT Drive
+                    </Text>
 
                     {/* Navigation Items */}
-                    <ScrollView style={styles.navContainer}>
+                    <ScrollView style={[styles.navContainer, { backgroundColor: theme.bgMain }]}>
                         {menuItems.map((item) => (
                             <SidebarButton 
                                 key={item} 
@@ -156,35 +52,21 @@ export default function Sidebar({ visible, onClose }) {
                             />
                         ))}
                     </ScrollView>
-                </View>
 
-                {/* Custom Input Modal for Creating Files/Folders */}
-                {inputVisible && (
-                    <Modal transparent visible={inputVisible} animationType="fade">
-                        <View style={styles.inputModalOverlay}>
-                            <View style={styles.inputModalContent}>
-                                <Text style={styles.inputTitle}>
-                                    New {inputType === 'folder' ? 'Folder' : 'Text File'}
-                                </Text>
-                                <TextInput 
-                                    style={styles.inputField}
-                                    placeholder="Enter name"
-                                    value={inputValue}
-                                    onChangeText={setInputValue}
-                                    autoFocus
-                                />
-                                <View style={styles.inputActions}>
-                                    <TouchableOpacity onPress={() => setInputVisible(false)}>
-                                        <Text style={styles.btnCancel}>Cancel</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={handleCreateSubmit}>
-                                        <Text style={styles.btnCreate}>Create</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </View>
-                    </Modal>
-                )}
+                    {/* Footer with Theme Toggle */}
+                    <View style={[styles.footer, { borderTopColor: theme.borderSubtle }]}>
+                        <TouchableOpacity style={styles.themeBtn} onPress={toggleTheme}>
+                            <Ionicons 
+                                name={isDarkMode ? "sunny" : "moon"} 
+                                size={22} 
+                                color={theme.textMain} 
+                            />
+                            <Text style={[styles.themeBtnText, { color: theme.textMain }]}>
+                                {isDarkMode ? "Light Mode" : "Dark Mode"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </View>
         </Modal>
     );
@@ -206,11 +88,11 @@ const styles = StyleSheet.create({
     sidebarContainer: {
         width: '80%',
         maxWidth: 300,
-        backgroundColor: '#fff',
+        // backgroundColor handled dynamically
         height: '100%',
         paddingTop: 20,
-        elevation: 10, // Shadow Android
-        shadowColor: '#000', // Shadow iOS
+        elevation: 10, 
+        shadowColor: '#000', 
         shadowOffset: { width: 2, height: 0 },
         shadowOpacity: 0.2,
     },
@@ -218,89 +100,28 @@ const styles = StyleSheet.create({
     brandTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#444',
+        // color handled dynamically
         marginLeft: 24,
         marginBottom: 20,
-    },
-    newButtonWrapper: {
-        paddingHorizontal: 16,
-        marginBottom: 16,
-    },
-    btnNew: {
-        backgroundColor: '#fff',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        // Material Shadow
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        alignSelf: 'flex-start',
-    },
-    btnNewText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#3c4043',
-    },
-    dropdownContainer: {
-        backgroundColor: '#f8f9fa',
-        marginHorizontal: 16,
-        borderRadius: 8,
-        paddingVertical: 8,
-        marginBottom: 16,
-        elevation: 2,
-    },
-    dropdownItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        gap: 12,
-    },
-    dropdownText: {
-        fontSize: 14,
-        color: '#3c4043',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#dadce0',
-        marginVertical: 4,
     },
     navContainer: {
         flex: 1,
     },
-    // Input Modal
-    inputModalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    inputModalContent: {
-        width: 280,
-        backgroundColor: '#fff',
-        borderRadius: 14,
+    // --- Footer Styles ---
+    footer: {
         padding: 20,
+        borderTopWidth: 1,
+        marginTop: 'auto', 
     },
-    inputTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
-    inputField: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 8,
-        fontSize: 16,
-        marginBottom: 20,
-    },
-    inputActions: {
+    themeBtn: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 20,
+        alignItems: 'center',
+        gap: 15,
+        marginLeft: 5,
+        paddingVertical: 10
     },
-    btnCancel: { color: '#1a73e8', fontWeight: '600' },
-    btnCreate: { color: '#1a73e8', fontWeight: '600' },
+    themeBtnText: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
 });

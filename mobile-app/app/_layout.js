@@ -1,14 +1,16 @@
 import { Slot } from 'expo-router';
 import { View } from 'react-native';
 import { RefreshProvider } from '../context/RefreshContext'; 
+import { ThemeProvider } from '../utilities/ThemeContext'; 
 
 export default function RootLayout() {
   return (
-    // Provide the context to the WHOLE app
-    <RefreshProvider>
-      <View style={{ flex: 1 }}>
-        <Slot />
-      </View>
-    </RefreshProvider>
+    <ThemeProvider>
+      <RefreshProvider>
+        <View style={{ flex: 1 }}>
+          <Slot />
+        </View>
+      </RefreshProvider>
+    </ThemeProvider>
   );
 }

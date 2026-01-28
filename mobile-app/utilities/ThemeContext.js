@@ -1,22 +1,28 @@
-// src/utilities/ThemeContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark'; // Initialize from storage
-  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const toggleTheme = () => setIsDarkMode(prev => !prev);
-
+  // 1. Load saved theme on startup
   useEffect(() => {
-    const theme = isDarkMode ? 'dark' : 'light';
-    // CRITICAL: This line tells the browser's CSS which theme to use
-    document.documentElement.setAttribute('data-theme', theme); 
-    localStorage.setItem('theme', theme);
-  }, [isDarkMode]);
+    const loadTheme = async () => {
+      const saved = await AsyncStorage.getItem('theme');
+      if (saved === 'dark') setIsDarkMode(true);
+    };
+    loadTheme();
+  }, []);
+
+  // 2. Toggle and Save
+  const toggleTheme = async () => {
+    setIsDarkMode((prev) => {
+      const newMode = !prev;
+      AsyncStorage.setItem('theme', newMode ? 'dark' : 'light'); // Save to phone storage
+      return newMode;
+    });
+  };
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
