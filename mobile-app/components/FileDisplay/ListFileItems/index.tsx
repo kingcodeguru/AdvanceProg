@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Alert, ActivityIndicator } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// שינוי ייבוא לפורמט בטוח יותר
-import * as FileSystem from 'expo-file-system';
+// הפתרון לשגיאת ה-Deprecated: ייבוא מהנתיב הישן (Legacy)
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 
@@ -28,7 +28,6 @@ interface ListFileItemsProps {
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
   const router = useRouter();
   
-  // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -47,7 +46,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         Alert.alert("Error", "Rename failed");
       }
     } catch (error) {
-      console.error("Rename Error:", error);
+      console.error(error);
     }
   };
 
@@ -57,7 +56,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       const response = await setStar(file.fid, newStatus);
       if (response.ok && onRefresh) onRefresh();
     } catch (error) {
-      console.error("Star Error:", error);
+      console.error(error);
     }
   };
 
@@ -70,9 +69,8 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
           : await patchFile(file.fid, { trashed: true });
         
         if (response.ok && onRefresh) onRefresh();
-        else Alert.alert("Error", "Action failed");
       } catch (error) {
-        console.error("Delete Error:", error);
+        console.error(error);
       }
     };
 
@@ -86,16 +84,14 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 4. לוגיקה: Download (שמירה לגלריה) ---
+  // --- 4. לוגיקה: Download (שימוש ב-Legacy API) ---
   const downloadSingleFile = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
       if (!response.ok) return;
       const fileData = await response.json();
       
-      // שימוש בגישה דינמית למניעת שגיאות Type
-      const fs = FileSystem as any;
-      const directory = fs.cacheDirectory || fs.documentDirectory;
+      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const localUri = `${directory}${file.name}`;
 
       let content = fileData.content;
@@ -107,6 +103,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         encoding = 'base64';
       }
 
+      // כאן התיקון: הפקודה עכשיו מגיעה מ-FileSystem/legacy
       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
 
       if (isImage) {
@@ -123,14 +120,13 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- 5. לוגיקה: Send a Copy (שיתוף עותק) ---
+  // --- 5. לוגיקה: Send a Copy ---
   const sendCopyAction = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
       const fileData = await response.json();
       
-      const fs = FileSystem as any;
-      const directory = fs.cacheDirectory || fs.documentDirectory;
+      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const localUri = `${directory}${file.name}`;
       
       let content = fileData.content;
@@ -148,24 +144,16 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- Handlers ---
-  const handleListSignal = (signal: string, file: any) => {
-    if (signal === 'open') {
-      const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
-      router.push(`/drive/${path}/${file.fid}` as any);
-    } else if (signal === 'menu') {
-      setSelectedFile(file);
-      setIsActionModalOpen(true); 
-    }
-  };
-
   const handleModalAction = async (actionName: string) => {
     setIsActionModalOpen(false); 
     if (!selectedFile) return;
 
     setTimeout(async () => {
       switch (actionName) {
-        case 'open': handleListSignal('open', selectedFile); break;
+        case 'open': 
+           const path = selectedFile.type === 'directory' ? 'directories' : (selectedFile.type === 'image' ? 'images' : 'files');
+           router.push(`/drive/${path}/${selectedFile.fid}` as any);
+           break;
         case 'rename': setIsRenameModalOpen(true); break;
         case 'move': setIsMoveModalOpen(true); break;
         case 'add_star': await toggleStar(selectedFile, true); break;
@@ -190,9 +178,15 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
   return (
     <View style={{ flex: 1, width: '100%' }}>
       {viewMode === 'line' ? (
-        <ListLineFileItems files={files} onAction={handleListSignal} onScroll={onScroll} />
+        <ListLineFileItems files={files} onAction={(sig, file) => {
+          if (sig === 'menu') { setSelectedFile(file); setIsActionModalOpen(true); }
+          else if (sig === 'open') { setSelectedFile(file); handleModalAction('open'); }
+        }} />
       ) : (
-        <ListBoxFileItems files={files} showFooter={showFooter} onAction={handleListSignal} onScroll={onScroll} />
+        <ListBoxFileItems files={files} showFooter={showFooter} onAction={(sig, file) => {
+          if (sig === 'menu') { setSelectedFile(file); setIsActionModalOpen(true); }
+          else if (sig === 'open') { setSelectedFile(file); handleModalAction('open'); }
+        }} />
       )}
 
       {selectedFile && (
@@ -207,14 +201,12 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
             isTrashed={selectedFile.trashed}
             onAction={handleModalAction}
           />
-
           <RenameFileModal
             visible={isRenameModalOpen}
             fileName={selectedFile.name} 
             onClose={() => { setIsRenameModalOpen(false); setSelectedFile(null); }}
             onRename={handleRenameSubmit}
           />
-
           <MoveItemModal
             visible={isMoveModalOpen}
             fileId={selectedFile.fid}
