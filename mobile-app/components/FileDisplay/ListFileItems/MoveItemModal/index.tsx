@@ -31,7 +31,8 @@ import Themes from '@/styles/themes';
 
 // --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
-const DRIVE_ICON = require('@/assets/images/drive_icon.jpg'); // אם יש לך אייקון של דרייב, אם לא נשתמש בתיקייה
+// ודאי שיש לך אייקון כזה, אחרת תשני ל-FOLDER_ICON
+const DRIVE_ICON = require('@/assets/images/drive_icon.jpg'); 
 const BACK_ICON = require('@/assets/images/back_icon.png');
 const SEARCH_ICON = require('@/assets/images/search_icon.png');
 const CLOSE_ICON = require('@/assets/images/x_icon.png');
@@ -50,7 +51,7 @@ interface FolderItem {
   type: string;
   parent_id?: string | null;
   starred?: boolean;
-  isRootRedirect?: boolean; // שדה חדש לזיהוי הקיצור ל-My Drive
+  isRootRedirect?: boolean; // שדה לזיהוי הקיצור
 }
 
 const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: MoveFileModalProps) => {
@@ -70,9 +71,15 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // === תיקון חדש: סטייט שעוקב אם המשתמש כבר ניווט בתוך המודאל ===
+  const [hasNavigated, setHasNavigated] = useState(false);
+
   // --- 1. Init Logic ---
   useEffect(() => {
     if (visible && fileId) {
+      // איפוס הסטייט של הניווט בפתיחה מחדש
+      setHasNavigated(false); 
+
       let mounted = true;
       const init = async () => {
         try {
@@ -164,23 +171,23 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
         const allowedFolders: FolderItem[] = [];
 
-        // === התיקון: הוספת My Drive אם אנחנו לא ברוט ===
-        // התנאי מהווב: לא ברוט, לא בחיפוש, אנחנו בשכבה העליונה של המודאל, ובטאב הראשי
+        // === התיקון: הוספת My Drive רק אם טרם ניווטנו (!hasNavigated) ===
         if (
             originParentId !== 'root' && 
             originParentId !== null &&
             !isSearch && 
             currentPath.length === 1 && 
-            activeTab === 'all'
+            activeTab === 'all' &&
+            !hasNavigated // <--- התנאי החדש
         ) {
             allowedFolders.push({
                 fid: 'root',
                 name: 'My Drive',
                 type: 'directory',
-                isRootRedirect: true // סימון מיוחד
+                isRootRedirect: true
             });
         }
-        // ===============================================
+        // ===============================================================
 
         for (const folder of candidates) {
             try {
@@ -196,7 +203,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     } finally {
       setLoading(false);
     }
-  }, [visible, searchQuery, currentFolder.fid, fileId, isInit, activeTab, isSearchActive, originParentId]);
+  }, [visible, searchQuery, currentFolder.fid, fileId, isInit, activeTab, isSearchActive, originParentId, hasNavigated]);
 
   useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => { setSearchQuery(''); }, [activeTab, currentFolder.fid]);
@@ -207,15 +214,15 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     setSearchQuery('');
     setActiveTab('all'); 
     setIsSearchActive(false);
+    
+    // ברגע שנכנסים לתיקייה כלשהי, מסמנים שכבר ניווטנו
+    setHasNavigated(true); 
 
-    // === טיפול בלחיצה על My Drive המיוחד ===
     if (folder.isRootRedirect) {
-        // מאפסים את המסלול ישר ל-Root
         setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
         return;
     }
 
-    // כניסה רגילה לתיקייה
     setCurrentPath(prev => [...prev, { fid: folder.fid, name: folder.name }]);
   };
 
@@ -257,15 +264,13 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const isAtOrigin = currentFolder.fid === originParentId;
   const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
-  // --- Render Item ---
+  // --- Render Item (עם תיקון האייקון) ---
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
-        {/* אם זה הקיצור ל-My Drive, אפשר לשים אייקון אחר או להשאיר תיקייה */}
+        {/* שימוש באייקון דרייב אם זה הקיצור, אחרת תיקייה רגילה */}
         <Image 
             source={item.isRootRedirect ? DRIVE_ICON : FOLDER_ICON} 
-            // fallback ל-FOLDER_ICON אם אין DRIVE_ICON
-            defaultSource={FOLDER_ICON}
             style={styles.folderImage} 
         />
       </View>
