@@ -117,7 +117,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         const localUri = `${FileSystem.cacheDirectory}${file.name}`;
         await FileSystem.writeAsStringAsync(localUri, content, { encoding });
         
-        // תיקון: requestPermissionsAsync(true) מבקש רק הרשאת כתיבה (מונע קריסת AUDIO)
         const { status } = await MediaLibrary.requestPermissionsAsync(true);
         
         if (status === 'granted') {
@@ -183,17 +182,17 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     }
   };
 
-  // --- Main Signal Handler (התיקון לבעיית הלחיצה הכפולה) ---
-  // פונקציה זו מקבלת את הקובץ ישירות מהרשימה ומטפלת בו מיד
+  // --- Main Signal Handler (תיקון: נוסף toggle_star) ---
   const handleListSignal = (signal: string, file: any) => {
     if (signal === 'open') {
-      // פתיחה ישירה עם הקובץ שהתקבל (עוקף את הדיליי של State)
       const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
       router.push(`/drive/${path}/${file.fid}` as any);
     } else if (signal === 'menu') {
-      // למודאל אנחנו צריכים State, אז כאן זה בסדר
       setSelectedFile(file);
       setIsActionModalOpen(true); 
+    } else if (signal === 'toggle_star') {
+      // הנה התיקון! לחיצה ישירה על הכוכב ברשימה
+      toggleStar(file, !file.starred);
     }
   };
 
@@ -205,7 +204,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     setTimeout(async () => {
       switch (actionName) {
         case 'open': 
-           // אם הפתיחה היא מהמודאל, selectedFile כבר קיים ותקין
            handleListSignal('open', selectedFile);
            break;
         case 'rename': setIsRenameModalOpen(true); break;
@@ -234,14 +232,14 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       {viewMode === 'line' ? (
         <ListLineFileItems 
           files={files} 
-          onAction={handleListSignal} // שליחה ישירה של הפונקציה המתוקנת
+          onAction={handleListSignal} 
           onScroll={onScroll} 
         />
       ) : (
         <ListBoxFileItems 
           files={files} 
           showFooter={showFooter} 
-          onAction={handleListSignal} // שליחה ישירה של הפונקציה המתוקנת
+          onAction={handleListSignal} 
           onScroll={onScroll} 
         />
       )}
