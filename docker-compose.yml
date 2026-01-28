@@ -16,7 +16,7 @@ services:
   # second executable: fileServer
   # --------------------------------------------------------------------------
   file_server:
-    profiles: ["drive", "test_file_server"]
+    profiles: ["drive", "test_file_server", "servers"]
     build:
       context: .
       dockerfile: src/File_Server/Dockerfile.server
@@ -66,7 +66,7 @@ services:
   # fifth executable: web server
   # --------------------------------------------------------------------------
   web_server:
-    profiles: ["drive"]
+    profiles: ["drive", "servers"]
     build:
       context: .
       dockerfile: src/Web_Server/Dockerfile.server
@@ -101,7 +101,7 @@ services:
   # seventh executable: mongo database
   # --------------------------------------------------------------------------
   mongo_db:
-    profiles: ["drive"]
+    profiles: ["drive", "servers"]
     image: mongo:latest
     container_name: drive-mongo-db
     ports:

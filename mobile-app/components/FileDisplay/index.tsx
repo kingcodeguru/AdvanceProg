@@ -26,9 +26,10 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [refreshInternal, setRefreshInternal] = useState(false);
 
-  // אנימציות - עמעום מהיר
+
   const fabOpacity = useRef(new Animated.Value(1)).current;
   const overlayFade = useRef(new Animated.Value(0)).current;
+  const isFabHidden = useRef(false); 
 
   // --- לוגיקה זהה לווב (Sidebar.js) ---
   const triggerRefresh = () => setRefreshInternal(prev => !prev);
@@ -112,7 +113,16 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    Animated.timing(fabOpacity, { toValue: offsetY > 10 ? 0 : 1, duration: 50, useNativeDriver: true }).start();
+    const shouldHide = offsetY > 10;
+
+    if (shouldHide !== isFabHidden.current) {
+      isFabHidden.current = shouldHide;
+      Animated.timing(fabOpacity, {
+        toValue: shouldHide ? 0 : 1,
+        duration: 200, // Increased duration slightly for smoothness
+        useNativeDriver: true
+      }).start();
+    }
   };
 
   const fetchWorkspaceData = useCallback(async () => {
