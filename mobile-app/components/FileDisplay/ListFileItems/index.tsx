@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// --- Imports ---
+// שינוי ייבוא לפורמט בטוח יותר
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -30,70 +30,111 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
   
   // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
-  
-  // Modals
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // --- לוגיקה: שמירת קובץ (Download) ---
-  const downloadSingleFile = async (file: any) => {
+  // --- 1. לוגיקה: Rename ---
+  const handleRenameSubmit = async (newName: string) => {
+    if (!selectedFile) return;
     try {
-      const response = await getFileById(file.fid);
-      if (!response.ok) {
-        Alert.alert("Error", "Failed to get file data");
-        return;
-      }
-      const fileData = await response.json();
-      
-      const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-      const localUri = directory + file.name;
-
-      let contentToWrite = fileData.content;
-      let encodingOption: 'utf8' | 'base64' = 'utf8';
-      const isImage = file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i);
-
-      if (isImage) {
-        contentToWrite = contentToWrite.replace(/^data:image\/\w+;base64,/, "");
-        encodingOption = 'base64';
-      }
-
-      // כתיבת הקובץ זמנית
-      await FileSystem.writeAsStringAsync(localUri, contentToWrite, { encoding: encodingOption });
-
-      if (isImage) {
-        // בקשת הרשאה ושמירה לגלריה
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status === 'granted') {
-          await MediaLibrary.saveToLibraryAsync(localUri);
-          Alert.alert("Success", "Image saved to gallery!");
-        } else {
-          Alert.alert("Permission Denied", "Cannot save image without gallery access.");
-        }
+      const response = await patchFile(selectedFile.fid, { name: newName });
+      if (response.ok) {
+        setIsRenameModalOpen(false);
+        setSelectedFile(null);
+        if (onRefresh) onRefresh();
       } else {
-        // עבור קבצים שאינם תמונה, במובייל הדרך הכי נכונה "להוריד" היא לפתוח את תפריט ה-Save to Files
-        // אבל כאן אנחנו משתמשים בזה כ"הורדה" נטו.
-        if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(localUri); // ב-iOS זה יפתח את ה-Save to Files
-        } else {
-            Alert.alert("Download Complete", `Saved to: ${localUri}`);
-        }
+        Alert.alert("Error", "Rename failed");
       }
     } catch (error) {
-      console.error("Download error:", error);
-      Alert.alert("Error", "Could not save file.");
+      console.error("Rename Error:", error);
     }
   };
 
-  // --- לוגיקה: שליחת עותק (Send a Copy) ---
+  // --- 2. לוגיקה: Star ---
+  const toggleStar = async (file: any, newStatus: boolean) => {
+    try {
+      const response = await setStar(file.fid, newStatus);
+      if (response.ok && onRefresh) onRefresh();
+    } catch (error) {
+      console.error("Star Error:", error);
+    }
+  };
+
+  // --- 3. לוגיקה: Delete ---
+  const deleteAction = async (file: any) => {
+    const performDelete = async () => {
+      try {
+        const response = file.trashed 
+          ? await deleteFile(file.fid) 
+          : await patchFile(file.fid, { trashed: true });
+        
+        if (response.ok && onRefresh) onRefresh();
+        else Alert.alert("Error", "Action failed");
+      } catch (error) {
+        console.error("Delete Error:", error);
+      }
+    };
+
+    if (file.trashed) {
+      Alert.alert("Delete Forever", "This cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: performDelete }
+      ]);
+    } else {
+      await performDelete();
+    }
+  };
+
+  // --- 4. לוגיקה: Download (שמירה לגלריה) ---
+  const downloadSingleFile = async (file: any) => {
+    try {
+      const response = await getFileById(file.fid);
+      if (!response.ok) return;
+      const fileData = await response.json();
+      
+      // שימוש בגישה דינמית למניעת שגיאות Type
+      const fs = FileSystem as any;
+      const directory = fs.cacheDirectory || fs.documentDirectory;
+      const localUri = `${directory}${file.name}`;
+
+      let content = fileData.content;
+      let encoding: any = 'utf8'; 
+
+      const isImage = file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i);
+      if (isImage) {
+        content = content.replace(/^data:image\/\w+;base64,/, "");
+        encoding = 'base64';
+      }
+
+      await FileSystem.writeAsStringAsync(localUri, content, { encoding });
+
+      if (isImage) {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          await MediaLibrary.saveToLibraryAsync(localUri);
+          Alert.alert("Success", "Saved to gallery!");
+        }
+      } else if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(localUri);
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+    }
+  };
+
+  // --- 5. לוגיקה: Send a Copy (שיתוף עותק) ---
   const sendCopyAction = async (file: any) => {
     try {
       const response = await getFileById(file.fid);
       const fileData = await response.json();
       
-      const localUri = (FileSystem.cacheDirectory || FileSystem.documentDirectory) + file.name;
+      const fs = FileSystem as any;
+      const directory = fs.cacheDirectory || fs.documentDirectory;
+      const localUri = `${directory}${file.name}`;
+      
       let content = fileData.content;
-      let encoding: 'utf8' | 'base64' = 'utf8';
+      let encoding: any = 'utf8';
 
       if (file.type === 'image' || file.name.match(/\.(jpeg|jpg|png|gif)$/i)) {
         content = content.replace(/^data:image\/\w+;base64,/, "");
@@ -101,12 +142,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
       }
 
       await FileSystem.writeAsStringAsync(localUri, content, { encoding });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
-      } else {
-        Alert.alert("Not Available", "Sharing is not available on this device.");
-      }
+      await Sharing.shareAsync(localUri, { dialogTitle: `Send a copy of ${file.name}` });
     } catch (error) {
       console.error("Send copy error:", error);
     }
@@ -115,9 +151,8 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
   // --- Handlers ---
   const handleListSignal = (signal: string, file: any) => {
     if (signal === 'open') {
-      if (file.type === 'directory') router.push(`/drive/directories/${file.fid}` as any);
-      else if (file.type === 'image') router.push(`/drive/images/${file.fid}` as any);
-      else router.push(`/drive/files/${file.fid}` as any);
+      const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
+      router.push(`/drive/${path}/${file.fid}` as any);
     } else if (signal === 'menu') {
       setSelectedFile(file);
       setIsActionModalOpen(true); 
@@ -128,7 +163,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     setIsActionModalOpen(false); 
     if (!selectedFile) return;
 
-    // השהייה קלה כדי לאפשר למודאל הקודם להיסגר בצורה חלקה
     setTimeout(async () => {
       switch (actionName) {
         case 'open': handleListSignal('open', selectedFile); break;
@@ -138,25 +172,20 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         case 'remove_star': await toggleStar(selectedFile, false); break;
         case 'delete': await deleteAction(selectedFile); break;
         case 'download': await downloadSingleFile(selectedFile); break;
-        case 'send_copy': await sendCopyAction(selectedFile); break; // מימוש שליחת עותק
+        case 'send_copy': await sendCopyAction(selectedFile); break;
         case 'restore': 
           try {
-            const response = await patchFile(selectedFile.fid, { trashed: false });
-            if (response.ok && onRefresh) onRefresh();
+            const res = await patchFile(selectedFile.fid, { trashed: false });
+            if (res.ok && onRefresh) onRefresh();
           } catch (e) { console.error(e); }
           break;
         case 'share_file':
           router.push(`/drive/files/permissions/${selectedFile.fid}` as any);
           break;
       }
-      
-      if (actionName !== 'rename' && actionName !== 'move') {
-          setSelectedFile(null);
-      }
+      if (actionName !== 'rename' && actionName !== 'move') setSelectedFile(null);
     }, 300);
   };
-
-  // ... (שאר הקומפוננטה: handleRenameSubmit, toggleStar, וכו' נשארים אותו דבר)
 
   return (
     <View style={{ flex: 1, width: '100%' }}>
