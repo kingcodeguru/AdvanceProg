@@ -8,8 +8,8 @@ Welcome to the project documentation. Please navigate through the sections below
 | :--- | :--- |
 | 🏗️ **[Architecture & Design](docs/ARCHITECTURE.md)** | UML diagrams, component breakdown, and system logic. |
 | 🚀 **[Installation & Running](docs/INSTALLATION.md)** | Step-by-step guide to build and launch the system using Docker. |
-| 📱 **[User Guide & Screenshots](docs/USER_GUIDE.md)** | detailed walkthrough of the UI, pages, and features (Dark mode, Editor, etc.). |
-| 🎥 **[Video Demos](docs/DEMOS.md)** | Watch the system in action: Sharing, Uploading, and more. |
+| 📱 **[User Guide & Screenshots](docs/USER_GUIDE.md)** | detailed walkthrough of the **Mobile App** UI, pages, and features (Dark mode, Editor, etc.). |
+| 🎥 **[Video Demos](docs/DEMOS.md)** | detailed walkthrough of the **Web App** UI, pages, and features (Dark mode, Editor, etc.). |
 
 ## ⚡ Quick Start
 If you just want to get the system running immediately:
@@ -20,15 +20,14 @@ If you just want to get the system running immediately:
 docker compose --profile drive up --build -d
 ```
 
-3. **Access the App**:  
-For the Web App:  
+3. **Access the Web App**:  
 Open your browser and navigate to `http://localhost:3000`.  
-For the Mobile App (Android/ iOS):  
-Open `expo go` application and insert `exp://*ip*:8081` where ip is the ip of the pc the react native project is running on.
+4. **Access the Mobile App**:  
+Open your phone on the application `expo go` and enter in it `exp://*ip*:8081` where ip is the ip of the pc the react native project is running on.
 
 ## 🛠️ Tech Stack
 
-* **Client**: React Native (Expo Router), TypeScript.
+* **Client**: React & React Native, written in javascript and typescript.
 * **Web Server**: Node.js / Express (Metadata & Permissions).
 * **File Server**: C++ (Raw Data Storage).
 * **Infrastructure**: Docker Compose.
