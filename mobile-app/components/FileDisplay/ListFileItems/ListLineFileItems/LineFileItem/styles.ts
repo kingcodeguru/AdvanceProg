@@ -4,22 +4,18 @@ export const styles = StyleSheet.create({
   container: {
     width: '100%',
     backgroundColor: '#fff',
-    // החזרתי את הקווים המפרידים
     borderBottomWidth: 1, 
-    borderBottomColor: '#f1f3f4', // אפור עדין מאוד
+    borderBottomColor: '#f1f3f4',
   },
 
   rowContainer: {
     flexDirection: 'row', 
     alignItems: 'center',
-    // הגדלתי משמעותית את הגובה כדי שיהיה אוויר למעלה ולמטה
     height: 72, 
-    paddingHorizontal: 20, // ריפוד בצדדים
+    paddingHorizontal: 20,
   },
 
-  // --- צד שמאל: אייקון ---
   iconContainer: {
-    // הגדלתי את הרווח בין האייקון לטקסט
     marginRight: 20, 
     justifyContent: 'center',
     alignItems: 'center',
@@ -30,14 +26,13 @@ export const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  // --- אמצע: טקסט ---
   textContainer: {
     flex: 1, 
     justifyContent: 'center',
     marginRight: 10, 
   },
   fileName: {
-    fontSize: 16, // פונט קצת יותר גדול וברור
+    fontSize: 16,
     color: '#1f1f1f', 
     fontWeight: '500', 
     marginBottom: 4, 
@@ -45,19 +40,18 @@ export const styles = StyleSheet.create({
   },
   fileDetails: {
     fontSize: 13,
-    color: '#80868b', // אפור אלגנטי
+    color: '#80868b', 
     fontWeight: '400',
     textAlign: 'left',
   },
 
-  // --- צד ימין: תפריט ---
   menuBtn: {
     width: 36, 
     height: 36,
-    justifyContent: 'center', // ממרכז את הטקסט אנכית ואופקית
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f1f3f4', // הריבוע האפור
-    borderRadius: 12, // פינות מעוגלות (Squircle)
+    backgroundColor: '#f1f3f4',
+    borderRadius: 12,
   },
   
   menuText: {
@@ -65,9 +59,6 @@ export const styles = StyleSheet.create({
     color: '#444',
     fontWeight: 'bold',
     letterSpacing: 1,
-    // --- התיקון הקריטי ליישור הנקודות ---
-    // הנקודות כטקסט תמיד יושבות נמוך ("Baseline").
-    // המינוס הזה מושך אותן למעלה למרכז הריבוע.
     marginTop: -12, 
   },
 });

@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   
-  // --- Header ---
+  
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -67,7 +67,7 @@ export const styles = StyleSheet.create({
     opacity: 0.6, 
   },
 
-  // --- List Content ---
+ 
   listContent: {
     paddingBottom: 90,
     paddingTop: 16,
@@ -98,7 +98,7 @@ export const styles = StyleSheet.create({
     textAlign: 'left',
   },
   
-  // --- Search Overlay ---
+ 
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -116,7 +116,7 @@ export const styles = StyleSheet.create({
     textAlign: 'left',
   },
 
-  // --- Footer ---
+  
   footer: {
     position: 'absolute',
     bottom: 0,

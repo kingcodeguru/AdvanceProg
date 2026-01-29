@@ -27,16 +27,13 @@ const PlusModal = ({ folderId, onRefresh, fabOpacity }: PlusModalProps) => {
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // --- State ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const overlayFade = useRef(new Animated.Value(0)).current;
 
-  // Input Modal State
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [createType, setCreateType] = useState<'folder' | 'text'>('folder');
 
-  // --- API Helper ---
   const sendToFileAPI = async (payload: any) => {
     try {
       const response = await api.postFiledir(payload);
@@ -55,7 +52,6 @@ const PlusModal = ({ folderId, onRefresh, fabOpacity }: PlusModalProps) => {
     return null;
   };
 
-  // --- Actions ---
   const openMenu = () => {
     setIsMenuOpen(true);
     Animated.timing(overlayFade, { toValue: 1, duration: 150, useNativeDriver: true }).start();
@@ -128,7 +124,6 @@ const PlusModal = ({ folderId, onRefresh, fabOpacity }: PlusModalProps) => {
 
   return (
     <>
-      {/* 1. The Floating Action Button (FAB) */}
       <Animated.View style={[
           styles.fab, 
           { 
@@ -142,7 +137,6 @@ const PlusModal = ({ folderId, onRefresh, fabOpacity }: PlusModalProps) => {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* 2. The Menu Modal (Bottom Sheet) */}
       <Modal visible={isMenuOpen} transparent animationType="slide" onRequestClose={closeMenu}>
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           <Animated.View style={[StyleSheet.absoluteFill, styles.modalOverlay, { opacity: overlayFade }]}>
@@ -163,7 +157,6 @@ const PlusModal = ({ folderId, onRefresh, fabOpacity }: PlusModalProps) => {
         </View>
       </Modal>
 
-      {/* 3. The Input Modal (For naming files/folders) */}
       <Modal 
         visible={inputVisible} 
         transparent={true} 

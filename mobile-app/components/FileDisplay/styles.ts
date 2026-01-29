@@ -5,7 +5,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  // --- Header ---
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -33,7 +32,6 @@ export const styles = StyleSheet.create({
     marginLeft: -10,
   },
   
-  // --- View Switcher ---
   viewSwitcher: {
     flexDirection: 'row',
     backgroundColor: '#f1f3f4',
@@ -60,7 +58,6 @@ export const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  // --- Plus Button (FAB) - עיגול מושלם בצד ימין ---
   fab: {
     position: 'absolute',
     bottom: 30,
@@ -83,7 +80,6 @@ export const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  // --- Modal / BottomSheet ---
   modalOverlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },

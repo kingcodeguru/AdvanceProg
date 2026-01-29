@@ -5,17 +5,14 @@ import {
 } from 'react-native';
 import { styles } from './styles';
 
-// Logic Imports
 import { getRole, getFileById } from '@/utilities/api'; 
 import { can_view, can_edit, can_change_permissions } from '@/utilities/roles';
 
-// 1. Theme Imports
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// --- Icons ---
 const ICON_OPEN = require('@/assets/images/open_icon.png');
 const ICON_DOWNLOAD = require('@/assets/images/download_icon.png');
 const ICON_RENAME = require('@/assets/images/rename_icon.png');
@@ -45,7 +42,6 @@ const FileActionModal = ({
   visible, fileID, fileName, fileType, onClose, onAction, isStarred, isTrashed 
 }: FileActionModalProps) => {
 
-  // 2. Get Current Theme
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
@@ -142,7 +138,6 @@ const FileActionModal = ({
             <Animated.View 
               style={[
                 styles.modalContainer, 
-                // 3. Dynamic Background Color
                 { 
                   backgroundColor: theme.bgForm,
                   transform: [{ translateY: slideAnim }], 
@@ -150,11 +145,9 @@ const FileActionModal = ({
                 }
               ]}
             >
-              {/* Dynamic Drag Handle */}
               <View style={[styles.dragHandle, { backgroundColor: theme.borderSubtle }]} />
               
               <View style={styles.headerContainer}>
-                {/* Header Icon usually stays original color (Docs/Images), no tint needed */}
                 
                 <Image 
                   source={fileType === 'image' ? ICON_IMG : fileType === 'directory' ? ICON_DIR : ICON_DOC} 
@@ -175,9 +168,6 @@ const FileActionModal = ({
                     <React.Fragment key={section.id}>
                       {section.items.map(item => {
                         
-                        // 4. Determine Icon Tint
-                        // If it is the 'Filled Star', use Brand Blue.
-                        // Otherwise (including 'Outline Star' and other icons), use Secondary Text color.
                         const isFilledStar = item.id === 'toggle_star' && isStarred;
                         const iconTint = isFilledStar ? theme.brandBlue : theme.textSecondary;
 
@@ -197,8 +187,6 @@ const FileActionModal = ({
                           </TouchableOpacity>
                         );
                       })}
-                      
-                      {/* Dynamic Divider */}
                       {index < visibleSections.length - 1 && (
                         <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
                       )}

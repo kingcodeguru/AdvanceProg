@@ -12,7 +12,6 @@ import * as api from '@/utilities/api';
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
-// Imported Components
 import PlusModal from './PlusModal';
 
 const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, folderId }: { refreshSignal?: any, category?: string, searchQuery?: string, folderId?: string }) => {
@@ -26,13 +25,11 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   const [isLineView, setIsLineView] = useState(true);
   const [refreshInternal, setRefreshInternal] = useState(false);
 
-  // Animation values (Shared with PlusModal)
   const fabOpacity = useRef(new Animated.Value(1)).current;
   const isFabHidden = useRef(false); 
 
   const triggerRefresh = () => setRefreshInternal(prev => !prev);
 
-  // --- Scroll Handler (Toggles FAB visibility) ---
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const shouldHide = offsetY > 10;
@@ -42,7 +39,6 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
     }
   };
 
-  // --- Data Fetching ---
   const fetchWorkspaceData = useCallback(async () => {
     setLoading(true);
     try {
@@ -80,7 +76,6 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           {!searchQuery && (
@@ -106,7 +101,6 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
         </View>
       </View>
 
-      {/* Main Content Area */}
       <View style={{ flex: 1 }}>
         {loading ? (
           <View style={styles.centerContainer}><ActivityIndicator size="large" color={theme.brandBlue} /></View>
@@ -119,7 +113,6 @@ const FileDisplay = ({ refreshSignal: externalRefresh, category, searchQuery, fo
           />
         )}
         
-        {/* Extracted PlusModal Component */}
         {!searchQuery && (
           <PlusModal 
              folderId={folderId} 

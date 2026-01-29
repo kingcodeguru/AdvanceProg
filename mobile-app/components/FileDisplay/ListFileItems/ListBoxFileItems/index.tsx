@@ -3,7 +3,6 @@ import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from '
 import { styles } from './styles';
 import BoxFileItem from './BoxFileItem'; 
 
-// 1. Import Theme Hook
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
@@ -28,12 +27,11 @@ interface ListBoxFileItemsProps {
 }
 
 const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: ListBoxFileItemsProps) => {
-  // 2. Get Theme
+
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
   const renderEmptyComponent = () => (
-    // Dynamic Background for Empty State
     <View style={[styles.emptyContainer, { backgroundColor: theme.bgPrimary }]}>
       <Image 
         source={EMPTY_FOLDER_IMG} 
@@ -44,7 +42,6 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: List
   );
 
   return (
-    // Dynamic Background for Main Container
     <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <FlatList
         data={files || []}
@@ -65,7 +62,6 @@ const ListBoxFileItems = ({ files, showFooter = true, onAction, onScroll }: List
             showFooter={showFooter}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}
-            // Optional: Pass theme down if needed
           />
         )}
       />

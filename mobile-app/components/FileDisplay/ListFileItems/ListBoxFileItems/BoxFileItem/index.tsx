@@ -9,7 +9,6 @@ import {
 import { styles } from './styles';
 import FilePreview from '../FilePreview';
 
-// 1. Import Theme Hook
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
@@ -36,7 +35,6 @@ interface BoxFileItemProps {
 }
 
 const BoxFileItem = ({ fileData, showFooter = true, onPress, onMenuPress }: BoxFileItemProps) => {
-  // 2. Get Theme
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
@@ -54,10 +52,6 @@ const BoxFileItem = ({ fileData, showFooter = true, onPress, onMenuPress }: BoxF
   return (
     <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <TouchableWithoutFeedback onPress={onPress} onLongPress={onMenuPress}>
-        {/* 3. Apply Dynamic Background and Border to Card
-           We use 'bgForm' (which is #ffffff in light, and #3c3e42 in dark) 
-           This makes the card pop against the background.
-        */}
         <View style={[
             styles.cardContainer, 
             { 
@@ -65,14 +59,10 @@ const BoxFileItem = ({ fileData, showFooter = true, onPress, onMenuPress }: BoxF
               borderColor: theme.borderSubtle 
             }
         ]}>
-          
-          {/* --- Preview Area --- */}
-          {/* Usually previews have their own background, but we can tint if needed */}
           <View style={[styles.previewArea, { backgroundColor: isDarkMode ? '#2d2f31' : '#f1f3f4' }]}>
              <FilePreview type={type} />
           </View>
 
-          {/* --- Footer Area --- */}
           <View style={[styles.footerArea, { backgroundColor: isDarkMode ? '#2d2f31' : '#f1f3f4' }]}>
             <Image source={getSmallIcon()} style={styles.smallTypeIcon} />
             <View style={styles.fileTitleContainer}>

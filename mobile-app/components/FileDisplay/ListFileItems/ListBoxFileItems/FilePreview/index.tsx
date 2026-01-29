@@ -34,7 +34,6 @@ const FilePreview = ({ type }: FilePreviewProps) => {
       <Image 
         source={getImageSource()} 
         style={styles.image}
-        // חשוב: לא משתמשים ב-resizeMode כאן, נותנים לסטייל לשלוט
       />
     </View>
   );
@@ -44,18 +43,15 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
-    overflow: 'hidden', 
-    // התיקון: מצמיד את התמונה למעלה (התחלה) במקום לאמצע
+    overflow: 'hidden',
     justifyContent: 'flex-start', 
     alignItems: 'center',
   },
   image: {
     width: '100%',
-    // התיקון: גובה לא מוגדר + יחס גובה-רוחב 
-    // זה גורם לתמונה לתפוס את כל הרוחב ולהתחיל מלמעלה
     height: undefined, 
-    aspectRatio: 1, // ברירת מחדל לריבוע, אבל זה יתמלא לפי התמונה
-    resizeMode: 'cover', // מוודא מילוי
+    aspectRatio: 1,
+    resizeMode: 'cover',
   },
 });
 

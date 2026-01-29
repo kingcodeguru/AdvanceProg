@@ -2,10 +2,8 @@ import React from 'react';
 import { View, FlatList, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './styles';
 
-// Import Single Item Component
 import LineFileItem from './LineFileItem'; 
 
-// 1. Import Theme Hook
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
@@ -29,13 +27,10 @@ interface ListLineFileItemsProps {
 }
 
 const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps) => {
-  // 2. Get Theme
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // Render Empty State
   const renderEmptyComponent = () => (
-    // Dynamic Background for Empty State
     <View style={[styles.emptyContainer, { backgroundColor: theme.bgPrimary }]}>
       <Image 
         source={EMPTY_FOLDER_IMG} 
@@ -46,7 +41,6 @@ const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps
   );
 
   return (
-    // Dynamic Background for Main Container
     <View style={[styles.container, { backgroundColor: theme.bgPrimary }]}>
       <FlatList
         data={files || []}
@@ -68,8 +62,6 @@ const ListLineFileItems = ({ files, onAction, onScroll }: ListLineFileItemsProps
             fileData={item}
             onPress={() => onAction('open', item)}
             onMenuPress={() => onAction('menu', item)}
-            // Optional: You can pass the theme down if LineFileItem doesn't use the hook itself
-            // theme={theme} 
           />
         )}
       />

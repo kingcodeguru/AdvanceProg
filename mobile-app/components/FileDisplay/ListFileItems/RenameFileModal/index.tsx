@@ -5,21 +5,17 @@ import {
 
 import { styles } from './styles';
 
-// 1. Import Theme Hooks
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
 interface RenameModalProps {
   visible: boolean;
-  // Note: Parent might pass 'currentName' or 'fileName'. 
-  // In the fixed parent code, we passed 'fileName', so sticking to that.
   fileName: string | null; 
   onClose: () => void;
   onRename: (newName: string) => void;
 }
 
 const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps) => {
-  // 2. Get Current Theme
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
@@ -51,16 +47,13 @@ const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps)
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
         
-        {/* 3. Dynamic Modal Background */}
         <View style={[styles.modalContent, { backgroundColor: theme.bgForm }]}>
           
-          {/* Dynamic Title Color */}
           <Text style={[styles.title, { color: theme.textMain }]}>Rename</Text>
 
           <View style={[styles.inputWrapper, { backgroundColor: theme.bgPrimary }]}>
             <TextInput
               ref={inputRef}
-              // 4. Dynamic Input Styles
               style={[
                 styles.textInput, 
                 { 
@@ -77,7 +70,6 @@ const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps)
               autoCorrect={false}
             />
             {extension ? (
-                // Dynamic Extension Text Color
                 <Text style={[styles.extensionText, { color: theme.textSecondary }]}>
                     {extension}
                 </Text>
@@ -86,7 +78,6 @@ const RenameModal = ({ visible, fileName, onClose, onRename }: RenameModalProps)
           
           <View style={styles.actionsContainer}>
             <Pressable onPress={onClose}>
-                {/* Dynamic Button Color */}
                 <Text style={[styles.buttonTextCancel, { color: theme.brandBlue }]}>Cancel</Text>
             </Pressable>
             <Pressable onPress={handleSave}>

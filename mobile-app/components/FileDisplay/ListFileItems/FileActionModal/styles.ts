@@ -1,13 +1,12 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-// תיקון: הגדרת השם SCREEN_HEIGHT כך שיתאים לשימוש בסטייל
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // רקע חצי שקוף
-    justifyContent: 'flex-end', // מצמיד את התוכן למטה
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
   },
   
   modalContainer: {
@@ -17,7 +16,6 @@ export const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20, 
     width: '100%',
-    // עכשיו SCREEN_HEIGHT מוגדר ומוכר כאן
     maxHeight: SCREEN_HEIGHT * 0.5, 
     elevation: 20,
     shadowColor: '#000',
@@ -70,12 +68,11 @@ export const styles = StyleSheet.create({
   },
   
   menuItemIcon: {
-    width: 24,  // הקטנתי מעט ל-24 שזה סטנדרט טוב
-    height: 24, // גובה ורוחב זהים
+    width: 24, 
+    height: 24, 
     marginRight: 20,
-    resizeMode: 'contain', // מבטיח שהתמונה תיכנס בול למסגרת בלי להימתח
+    resizeMode: 'contain', 
     opacity: 0.6,
-    // תוספת חשובה: מוודא שהאייקון מיושר לאמצע הגובה של השורה
     alignSelf: 'center', 
   },
   

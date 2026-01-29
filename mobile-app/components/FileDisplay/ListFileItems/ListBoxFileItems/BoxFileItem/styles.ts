@@ -23,19 +23,14 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
-  
-  // --- תיקון לתמונה (בעיה 5) ---
   previewArea: {
     flex: 1, 
     backgroundColor: 'transparent', 
     justifyContent: 'center', 
     alignItems: 'center',
     width: '100%',
-    padding: 20, // הוספתי פדינג כדי שהתמונה לא תיגע בקצוות אבל תהיה גדולה
+    padding: 20,
   },
-  // הוספתי סטייל ספציפי לתמונה בתוך previewArea אם צריך, 
-  // אבל הסטייל הזה שולט על הקונטיינר שלה.
-  // אם התמונה עצמה מוגדרת בקומפוננטה, וודאי שהיא resizeMode="contain"
 
   footerArea: {
     height: 52, 

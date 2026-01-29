@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { styles } from './styles';
 
-// 1. Import Theme Hook
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
@@ -34,7 +33,6 @@ interface LineFileItemProps {
 }
 
 const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => {
-  // 2. Get Theme
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
@@ -57,12 +55,10 @@ const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => 
       <TouchableWithoutFeedback onPress={onPress} onLongPress={onMenuPress}>
         <View style={styles.rowContainer}>
           
-          {/* Icon */}
           <View style={styles.iconContainer}>
             <Image source={getIcon()} style={styles.fileIcon} />
           </View>
 
-          {/* Text Info (Dynamic Colors) */}
           <View style={styles.textContainer}>
             <Text 
               style={[styles.fileName, { color: theme.textMain }]} 
@@ -78,7 +74,6 @@ const LineFileItem = ({ fileData, onPress, onMenuPress }: LineFileItemProps) => 
             </Text>
           </View>
 
-          {/* Menu Dots (Dynamic Color) */}
           <TouchableOpacity 
             style={[styles.menuBtn, { backgroundColor: theme.bgForm }]} 
             onPress={onMenuPress}

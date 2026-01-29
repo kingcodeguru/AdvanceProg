@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import { View, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// Imports
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 
-// API
 import { patchFile, deleteFile, setStar, getFileById } from '@/utilities/api';
 
-// Components
 import ListBoxFileItems from './ListBoxFileItems';
 import ListLineFileItems from './ListLineFileItems';
 import FileActionModal from './FileActionModal';
@@ -28,26 +25,22 @@ interface ListFileItemsProps {
 const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: ListFileItemsProps) => {
   const router = useRouter();
   
-  // State
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
-  // === CORE ACTIONS LOGIC (המוח של הקומפוננטה) ===
   
   const performFileAction = async (action: string, file: any) => {
     if (!file) return;
 
     switch (action) {
       case 'open':
-        // פתיחה מיידית - בלי לחכות ל-State!
         const path = file.type === 'directory' ? 'directories' : (file.type === 'image' ? 'images' : 'files');
         router.push(`/drive/${path}/${file.fid}` as any);
         break;
 
       case 'toggle_star':
-        // לוגיקה חכמה: הופך את המצב הקיים
         try {
           const response = await setStar(file.fid, !file.starred);
           if (response.ok && onRefresh) onRefresh();
@@ -55,7 +48,7 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         break;
 
       case 'rename':
-        setSelectedFile(file); // כאן חייבים State למודאל
+        setSelectedFile(file);
         setIsRenameModalOpen(true);
         break;
 
@@ -88,7 +81,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         break;
         
       case 'menu':
-        // פתיחת התפריט בלבד
         setSelectedFile(file);
         setIsActionModalOpen(true);
         break;
@@ -96,7 +88,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
   };
 
 
-  // --- Helper Functions (לוגיקה מסובכת שהוצאנו החוצה) ---
 
   const handleDelete = async (file: any) => {
     const execute = async () => {
@@ -132,7 +123,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         encoding = 'base64';
       }
 
-      // שמירת תמונות
       if (isImage) {
         const localUri = `${FileSystem.cacheDirectory}${file.name}`;
         await FileSystem.writeAsStringAsync(localUri, content, { encoding });
@@ -146,7 +136,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
         return;
       }
 
-      // שמירת קבצים (Android SAF / iOS Share)
       if (Platform.OS === 'android') {
         const perm = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
         if (perm.granted) {
@@ -188,11 +177,9 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
     return 'application/octet-stream';
   };
 
-  // --- UI Render ---
 
   return (
     <View style={{ flex: 1, width: '100%' }}>
-      {/* הרשימה קוראת ישירות ל-performFileAction */}
       {viewMode === 'line' ? (
         <ListLineFileItems 
           files={files} 
@@ -219,7 +206,6 @@ const ListFileItems = ({ files, viewMode, onRefresh, showFooter, onScroll }: Lis
             isStarred={selectedFile.starred}
             isTrashed={selectedFile.trashed}
             onAction={(action) => {
-              // המודאל סוגר את עצמו, ואז אנחנו מריצים את הפעולה
               setIsActionModalOpen(false);
               setTimeout(() => performFileAction(action, selectedFile), 300);
             }}

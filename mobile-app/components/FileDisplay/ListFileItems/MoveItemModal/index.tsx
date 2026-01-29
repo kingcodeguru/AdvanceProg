@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { styles } from './styles';
 
-// API Imports
 import { 
   getFilesByDirectory, 
   patchFile, 
@@ -25,11 +24,9 @@ import {
 } from '@/utilities/api'; 
 import { can_edit } from '@/utilities/roles';
 
-// Theme
 import { useTheme } from '@/utilities/ThemeContext';
 import Themes from '@/styles/themes';
 
-// --- Images ---
 const FOLDER_ICON = require('@/assets/images/dir_logo.png'); 
 const DRIVE_ICON = FOLDER_ICON;
 const BACK_ICON = require('@/assets/images/back_icon.png');
@@ -57,10 +54,8 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const { isDarkMode } = useTheme();
   const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-  // --- State ---
   const [isInit, setIsInit] = useState(true);
   
-  // בווב originParentId הוא null אם זה ברוט
   const [originParentId, setOriginParentId] = useState<string | null>(null);
   const [originParentName, setOriginParentName] = useState<string>('My Drive');
 
@@ -73,7 +68,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   const [searchQuery, setSearchQuery] = useState('');
   const [hasNavigated, setHasNavigated] = useState(false);
 
-  // --- 1. Init Logic ---
   useEffect(() => {
     if (visible && fileId) {
       setHasNavigated(false);
@@ -84,7 +78,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           const fileRes = await getFileById(fileId);
           const fileData = fileRes.json ? await fileRes.json() : fileRes;
           
-          const parentId = fileData.parent_id; // null עבור Root
+          const parentId = fileData.parent_id; 
           if (mounted) setOriginParentId(parentId);
 
           let startName = 'My Drive';
@@ -106,7 +100,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
           }
         } catch (e) {
           if (mounted) {
-            setOriginParentId(null); // Fallback to root (null)
+            setOriginParentId(null); 
             setOriginParentName('My Drive');
             setCurrentPath([{ fid: 'root', name: 'My Drive' }]);
             setIsInit(false);
@@ -122,7 +116,7 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     ? currentPath[currentPath.length - 1] 
     : { fid: 'root', name: 'My Drive' };
 
-  // --- 2. Load Folders Logic ---
+  
   const loadFolders = useCallback(async () => {
     if (!visible || isInit) return;
     setLoading(true);
@@ -168,7 +162,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
 
         const allowedFolders: FolderItem[] = [];
 
-        // הוספת My Drive רק אם אנחנו לא במקור, בשכבה העליונה, ולא ניווטנו עדיין
         if (
             originParentId !== null && 
             originParentId !== 'root' &&
@@ -204,7 +197,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   useEffect(() => { loadFolders(); }, [loadFolders]);
   useEffect(() => { setSearchQuery(''); }, [activeTab, currentFolder.fid]);
 
-  // --- Actions ---
 
   const handleEnterFolder = (folder: FolderItem) => {
     setSearchQuery('');
@@ -238,13 +230,11 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
   };
 
   const handleMove = async () => {
-    // === תיקון קריטי: המרה ל-null עבור השרת ===
     let destinationId: string | null = currentFolder.fid;
     if (destinationId === 'root') {
-        destinationId = null; // השרת מצפה ל-null ב-My Drive
+        destinationId = null;
     }
 
-    // הגנה מפני העברה לאותו מקום
     if (destinationId === originParentId) return;
 
     try {
@@ -262,15 +252,12 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
     }
   };
 
-  // בדיקת תקינות לכפתור (Move Enabled)
-  // מנרמלים את שניהם כדי להשוות תפוחים לתפוחים
   const currentNormalized = currentFolder.fid === 'root' ? null : currentFolder.fid;
   const originNormalized = (originParentId === 'root' || originParentId === '') ? null : originParentId;
   const isMoveEnabled = currentNormalized !== originNormalized;
   
   const showSearchBar = activeTab === 'starred' || (activeTab === 'all' && currentPath.length === 1);
 
-  // --- Render Item ---
   const renderFolderItem = ({ item }: { item: FolderItem }) => (
     <TouchableOpacity style={styles.folderItem} onPress={() => handleEnterFolder(item)}>
       <View style={styles.folderIconContainer}>
@@ -293,7 +280,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
         <View style={[styles.modalContainer, { backgroundColor: theme.bgMain }]}>
 
-          {/* --- Header --- */}
           {!isSearchActive ? (
             <View style={[styles.header, { borderBottomColor: theme.borderSubtle, flexDirection: 'column', height: 'auto', paddingBottom: 10 }]}>
               
@@ -338,20 +324,18 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
               )}
             </View>
           ) : (
-            // === תיקון דארק מוד לחיפוש ===
             <View style={[styles.searchContainer, { borderBottomColor: theme.borderSubtle, backgroundColor: theme.bgMain }]}>
                <TouchableOpacity onPress={() => { setIsSearchActive(false); setSearchQuery(''); }}>
                   <Image source={BACK_ICON} style={[styles.backIconImage, { tintColor: theme.textMain }]} />
                </TouchableOpacity>
                
-               {/* אינפוט מעוצב לדארק מוד */}
                <TextInput
                  style={{
                     flex: 1,
                     marginLeft: 10,
                     fontSize: 16,
-                    color: theme.textMain, // טקסט בצבע המתאים
-                    backgroundColor: isDarkMode ? '#333333' : '#f1f3f4', // רקע מותאם
+                    color: theme.textMain,
+                    backgroundColor: isDarkMode ? '#333333' : '#f1f3f4',
                     borderRadius: 8,
                     paddingHorizontal: 12,
                     paddingVertical: 8,
@@ -371,7 +355,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             </View>
           )}
 
-          {/* --- Content --- */}
           {loading || isInit ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color={theme.brandBlue} />
@@ -392,7 +375,6 @@ const MoveItemModal = ({ visible, fileId, fileName, onClose, onMoveSuccess }: Mo
             />
           )}
 
-          {/* --- Footer --- */}
           <View style={[styles.footer, { backgroundColor: theme.bgMain, borderTopColor: theme.borderSubtle }]}>
             <TouchableOpacity onPress={onClose}>
               <Text style={[styles.cancelButtonText, { color: theme.brandBlue }]}>Cancel</Text>
