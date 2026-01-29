@@ -15,17 +15,16 @@ import {
 import { useRouter, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
 import * as api from '../utilities/api'; 
-import Themes from '../styles/themes'; // <--- 2. Import Themes
+import Themes from '../styles/themes'; 
 
 const defaultPfpSource = require('../assets/def_pfp.jpg');
 
 export default function SignUp() {
   const router = useRouter();
   
-  // 3. Detect Theme
   const colorScheme = useColorScheme();
   const theme = Themes[colorScheme ?? 'light'];
 
@@ -102,7 +101,7 @@ export default function SignUp() {
           const data = await response.json();
           if (data.token) {
             await AsyncStorage.setItem('userToken', data.token);
-            router.replace('/drive/all');
+            router.replace('/drive/home');
           }
         }
       } else {
@@ -183,6 +182,17 @@ export default function SignUp() {
             onChangeText={setConfirmPassword}
             secureTextEntry
           />
+
+          <Text style={{ 
+            color: theme.textSecondary, 
+            fontSize: 12, 
+            marginBottom: 15, 
+            textAlign: 'left',
+            alignSelf: 'flex-start',
+            paddingHorizontal: 5
+          }}>
+            Must contain at least 1 lower case letter, 1 small letter, 1 numeral, 1 special character, at least 6 characters and up to 100.
+          </Text>
 
           <Pressable 
             style={({ pressed }) => [

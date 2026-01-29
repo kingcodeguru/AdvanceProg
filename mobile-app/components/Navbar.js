@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -14,61 +14,69 @@ import {
     Image 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as api from '../utilities/api';
 
+import { useTheme } from '../utilities/ThemeContext';
+import Themes from '../styles/themes';
+
+// --- Solution: Global Cache Variable ---
+// This variable survives component unmounts/remounts.
+let globalUserCache = null;
+
 export default function Navbar({ onMenuPress }) {
     const router = useRouter();
-    
-    // --- State Management ---
+    const { isDarkMode } = useTheme();
+    const theme = Themes[isDarkMode ? 'dark' : 'light'];
+
     const [modalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [user, setUser] = useState({
+
+    // --- Smart Initialization ---
+    // If we have data in the cache, use it immediately to prevent flickering.
+    // Otherwise, use default empty state.
+    const [user, setUser] = useState(globalUserCache || {
         name: '',
         email: '',
         avatar: null 
     });
 
-    // --- Data Fetching ---
-    
-    // Fetches the current user's details from the server
     const fetchUserData = async () => {
         try {
             const response = await api.getMyDetails();
             if (response.ok) {
                 const data = await response.json();
-                setUser({
+                
+                const newUserState = {
                     name: data.name || 'User',
                     email: data.email || '',
-                    // Assuming the server returns a URL for 'avatar', otherwise null
                     avatar: data.avatar || null 
-                });
+                };
+
+                // Update the global cache for next time
+                globalUserCache = newUserState;
+                
+                // Update state only if data changed (optional optimization)
+                setUser(newUserState);
             }
         } catch (error) {
             console.error("Error loading user data:", error);
         }
     };
 
-    // Reloads user data every time the screen comes into focus (e.g., after login)
-    useFocusEffect(
-        useCallback(() => {
-            fetchUserData();
-        }, [])
-    );
+    // Fetch data once on mount (background update)
+    useEffect(() => {
+        fetchUserData();
+    }, []); 
 
-    // --- Event Handlers ---
-
-    // Navigates to the search results page with the query
     const handleSearch = () => {
         if (searchQuery.trim().length > 0) {
             console.log("Navigating to search:", searchQuery);
-            // Pushes the search route. You must implement the [query].js page to handle this.
             router.push(`/drive/search/${encodeURIComponent(searchQuery)}`);
         }
     };
 
-    // Handles the logout process with a confirmation alert
     const handleLogout = () => {
         Alert.alert(
             "Sign out",
@@ -80,11 +88,12 @@ export default function Navbar({ onMenuPress }) {
                     style: "destructive", 
                     onPress: async () => {
                         try {
-                            // 1. Remove the authentication token
                             await AsyncStorage.removeItem('userToken');
-                            // 2. Close the profile modal
+                            
+                            // Clear cache on logout so next user doesn't see old data
+                            globalUserCache = null;
+                            
                             setModalVisible(false);
-                            // 3. Redirect to the login screen
                             router.replace('/login');
                         } catch (e) {
                             console.error("Logout failed:", e);
@@ -95,16 +104,10 @@ export default function Navbar({ onMenuPress }) {
         );
     };
 
-    // --- Helpers ---
-    
-    // Extracts the first letter of the name for the avatar placeholder
     const getInitial = () => {
         return user.name ? user.name.charAt(0).toUpperCase() : '?';
     };
 
-    // --- Components ---
-
-    // Renders the Profile Modal (The popup when clicking the avatar)
     const renderProfileModal = () => (
         <Modal
             animationType="fade"
@@ -115,17 +118,15 @@ export default function Navbar({ onMenuPress }) {
             <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableWithoutFeedback>
-                        <View style={styles.modalContent}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.bgForm }]}>
                             
-                            {/* Close Icon */}
                             <TouchableOpacity 
                                 style={styles.closeBtn} 
                                 onPress={() => setModalVisible(false)}
                             >
-                                <MaterialIcons name="close" size={22} color="#5f6368" />
+                                <MaterialIcons name="close" size={22} color={theme.textSecondary} />
                             </TouchableOpacity>
 
-                            {/* Brand Logo (LOT) with Custom Colors */}
                             <View style={styles.logoContainer}>
                                 <Text style={styles.brandLogo}>
                                     <Text style={{color: '#4285F4'}}>L</Text>
@@ -134,7 +135,6 @@ export default function Navbar({ onMenuPress }) {
                                 </Text>
                             </View>
 
-                            {/* User Information */}
                             <View style={styles.userInfoSection}>
                                 <View style={styles.largeAvatarContainer}>
                                     {user.avatar ? (
@@ -146,21 +146,23 @@ export default function Navbar({ onMenuPress }) {
                                     )}
                                 </View>
 
-                                <Text style={styles.userName}>Hi, {user.name.split(' ')[0]}!</Text>
-                                <Text style={styles.userEmail}>{user.email}</Text>
+                                <Text style={[styles.userName, { color: theme.textMain }]}>
+                                    Hi, {user.name.split(' ')[0]}!
+                                </Text>
+                                <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
+                                    {user.email}
+                                </Text>
                             </View>
 
-                            {/* Divider Line */}
-                            <View style={styles.divider} />
+                            <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />
 
-                            {/* Sign Out Button */}
                             <View style={styles.footerSection}>
                                 <TouchableOpacity 
-                                    style={styles.signOutBtn}
+                                    style={[styles.signOutBtn, { borderColor: theme.borderSubtle }]}
                                     onPress={handleLogout}
                                 >
-                                    <MaterialIcons name="logout" size={20} color="#5f6368" style={{marginRight: 8}} />
-                                    <Text style={styles.signOutText}>Sign out</Text>
+                                    <MaterialIcons name="logout" size={20} color={theme.textSecondary} style={{marginRight: 8}} />
+                                    <Text style={[styles.signOutText, { color: theme.textMain }]}>Sign out</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -171,29 +173,26 @@ export default function Navbar({ onMenuPress }) {
         </Modal>
     );
 
-    // --- Main Render ---
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.headerContainer}>
-                <View style={styles.searchBarContainer}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
+            <View style={[styles.headerContainer, { backgroundColor: theme.bgMain }]}>
+                
+                <View style={[styles.searchBarContainer, { backgroundColor: isDarkMode ? theme.bgForm : '#f0f4f9' }]}>
                     
-                    {/* Hamburger Menu Icon (Triggers parent callback) */}
                     <TouchableOpacity onPress={onMenuPress} style={styles.iconBtn}>
-                        <MaterialIcons name="menu" size={26} color="#444746" />
+                        <MaterialIcons name="menu" size={26} color={theme.textMain} />
                     </TouchableOpacity>
 
-                    {/* Search Input Field */}
                     <TextInput
-                        style={styles.searchInput}
+                        style={[styles.searchInput, { color: theme.textMain }]}
                         placeholder="Search in Drive"
-                        placeholderTextColor="#444746"
+                        placeholderTextColor={theme.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        onSubmitEditing={handleSearch} // Triggers search on "Enter"
+                        onSubmitEditing={handleSearch}
                         returnKeyType="search"
                     />
 
-                    {/* Profile Avatar Button (Opens Modal) */}
                     <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.profileBtn}>
                         {user.avatar ? (
                              <Image source={{ uri: user.avatar }} style={styles.smallAvatarImage} />
@@ -207,28 +206,22 @@ export default function Navbar({ onMenuPress }) {
                 </View>
             </View>
             
-            {/* Render the modal component (hidden by default) */}
             {renderProfileModal()}
         </SafeAreaView>
     );
 }
 
-// --- Styles ---
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: '#fff', 
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     },
     headerContainer: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        backgroundColor: '#fff',
     },
-    // Search Bar Styling
     searchBarContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f0f4f9', 
         borderRadius: 28, 
         height: 52,
         paddingHorizontal: 8,
@@ -242,12 +235,10 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 16,
-        color: '#1f1f1f',
         paddingHorizontal: 8,
         textAlign: 'left', 
     },
     profileBtn: { padding: 6 },
-    // Small Avatar (In Navbar)
     smallAvatar: {
         width: 32,
         height: 32,
@@ -265,8 +256,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
-
-    // Modal Styling
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
@@ -276,7 +265,6 @@ const styles = StyleSheet.create({
     modalContent: {
         width: '85%',
         maxWidth: 320,
-        backgroundColor: '#fff',
         borderRadius: 16,
         paddingVertical: 20,
         elevation: 10,
@@ -310,7 +298,6 @@ const styles = StyleSheet.create({
     largeAvatarContainer: { 
         marginBottom: 15 
     },
-    // Large Avatar (In Modal)
     largeAvatar: {
         width: 80,
         height: 80,
@@ -331,16 +318,13 @@ const styles = StyleSheet.create({
     userName: { 
         fontSize: 18, 
         fontWeight: '500', 
-        color: '#1f1f1f', 
         marginBottom: 4 
     },
     userEmail: { 
         fontSize: 14, 
-        color: '#5f6368' 
     },
     divider: {
         height: 1,
-        backgroundColor: '#e0e0e0',
         marginVertical: 15,
         width: '100%'
     },
@@ -352,14 +336,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#dadce0',
         borderRadius: 24, 
         paddingVertical: 10,
         paddingHorizontal: 40,
     },
     signOutText: { 
         fontSize: 15, 
-        color: '#3c4043', 
         fontWeight: '500' 
     },
 });

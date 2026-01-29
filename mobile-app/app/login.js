@@ -45,7 +45,7 @@ export default function LogIn() {
 
         if (token) {
           await AsyncStorage.setItem('userToken', token);
-          router.replace('/drive/all');
+          router.replace('/drive/home');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));

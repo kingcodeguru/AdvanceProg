@@ -214,8 +214,36 @@ export async function addFilePermission(fileId, email, role) {
     return response;
 }
 
-export async function updateFilePermission(fileId, pid, role, uidOfUser) {
+async function getPidFromUidAndFid(fid, uid) {
     const token = await getToken();
+    console.log(`fetching: ${IP}/api/files/${encodeURIComponent(fid)}/permissions`)
+    const response = await fetch(`${IP}/api/files/${encodeURIComponent(fid)}/permissions`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (response.ok) {
+        const permissions = await response.json();
+        const permission = permissions.find(p => p.uid === uid);
+        return permission ? permission.pid : null;
+    } else {
+        console.error(`Failed to fetch permissions for file ${fid}: ${response.statusText}`);
+        console.error((await response.json()).error);
+    }
+
+    return null;
+}
+
+
+export async function updateFilePermission(fileId, uidOfUser, role) {
+    const token = await getToken();
+    const pid = await getPidFromUidAndFid(fileId, uidOfUser);
+    if (!pid) {
+        throw new Error("Permission not found");
+    }
     const response = await fetch(`${IP}/api/files/${encodeURIComponent(fileId)}/permissions/${pid}`, {
         method: 'PATCH',
         headers: {

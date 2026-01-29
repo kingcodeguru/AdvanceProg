@@ -20,11 +20,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
     getMyDetails, 
     getFilePermissions, 
-    addPermission, 
-    updatePermission, 
+    addFilePermission, 
+    updateFilePermission, 
     removePermission,
     getFileById
-} from '../../../../utilities/api'; // Adjust path if needed
+} from '../../../../utilities/api';
+
+// 1. Import Theme Hooks
+import { useTheme } from '@/utilities/ThemeContext';
+import Themes from '@/styles/themes';
 
 // --- Constants ---
 
@@ -37,7 +41,11 @@ const ROLES = {
 
 export default function PermissionsScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams(); // This is the fileId
+    const { id } = useLocalSearchParams(); 
+
+    // 2. Get Current Theme
+    const { isDarkMode } = useTheme();
+    const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
     // --- State ---
     const [permissions, setPermissions] = useState([]);
@@ -53,14 +61,14 @@ export default function PermissionsScreen() {
 
     const loadData = useCallback(async () => {
         try {
-            // 1. Get My Details (to know who "Me" is)
+            // 1. Get My Details
             const meRes = await getMyDetails();
             if (meRes.ok) {
                 const meData = await meRes.json();
                 setCurrentUser(meData);
             }
 
-            // 2. Get File Details (for the title)
+            // 2. Get File Details
             const fileRes = await getFileById(id);
             if (fileRes.ok) {
                 const fileData = await fileRes.json();
@@ -97,8 +105,6 @@ export default function PermissionsScreen() {
     }, [loadData]);
 
     // --- Computed Properties ---
-
-    // Find my role in the permissions list based on my UID
     const myPermission = currentUser ? permissions.find(p => p.uid === currentUser.uid) : null;
     const myRole = myPermission ? myPermission.role : ROLES.VIEWER;
     const canManage = myRole >= ROLES.ADMIN;
@@ -109,14 +115,10 @@ export default function PermissionsScreen() {
         if (!currentUser) return permissions;
 
         return [...permissions].sort((a, b) => {
-            // Priority 1: Me
             if (a.uid === currentUser.uid) return -1;
             if (b.uid === currentUser.uid) return 1;
-
-            // Priority 2: Owner
             if (a.role === ROLES.OWNER) return -1;
             if (b.role === ROLES.OWNER) return 1;
-
             return 0; 
         });
     };
@@ -164,21 +166,20 @@ export default function PermissionsScreen() {
         if (!newEmail.trim()) return;
 
         try {
-            const response = await addPermission(id, newEmail, newRole);
+            const response = await addFilePermission(id, newEmail, newRole);
             if (response.ok) {
                 Alert.alert("Success", "User added successfully.");
                 setNewEmail('');
-                fetchPermissionsList(); // Refresh list
+                fetchPermissionsList(); 
             } else {
                 Alert.alert("Error", "Failed to add user. Check email or permissions.");
             }
         } catch (error) {
-            Alert.alert("Error", "Network error while adding user.");
+            Alert.alert("Error", `Network error while adding user: ${error.message}`);
         }
     };
 
     const handleChangeRole = (user) => {
-        // Validation: Admin cannot change Owner
         if (user.role === ROLES.OWNER) {
             Alert.alert("Action Denied", "Cannot change Owner's role.");
             return;
@@ -193,13 +194,11 @@ export default function PermissionsScreen() {
                 { text: "Make Viewer", onPress: () => performUpdateRole(user, ROLES.VIEWER) },
                 { text: "Make Editor", onPress: () => performUpdateRole(user, ROLES.EDITOR) },
                 { text: "Make Admin", onPress: () => performUpdateRole(user, ROLES.ADMIN) },
-                
                 { 
                     text: isMe ? "Leave File" : "Remove User", 
                     style: 'destructive', 
                     onPress: () => performRemoveUser(user) 
                 },
-                
                 { text: "Cancel", style: "cancel" }
             ]
         );
@@ -207,14 +206,15 @@ export default function PermissionsScreen() {
 
     const performUpdateRole = async (user, newRole) => {
         try {
-            const response = await updatePermission(id, user.uid, newRole);
+            const response = await updateFilePermission(id, user.uid, newRole);
             if (response.ok) {
-                fetchPermissionsList(); // Refresh list
+                fetchPermissionsList(); 
             } else {
+                console.log(`Failed to update role for user ${user.email}: ${(await response.json()).error}`);
                 Alert.alert("Error", "Failed to update role.");
             }
         } catch (error) {
-            Alert.alert("Error", "Network error.");
+            Alert.alert("Error", `Network error: ${error.message}`);
         }
     };
 
@@ -240,7 +240,7 @@ export default function PermissionsScreen() {
                                         { text: "OK", onPress: () => router.back() }
                                     ]);
                                 } else {
-                                    fetchPermissionsList(); // Refresh list
+                                    fetchPermissionsList(); 
                                 }
                             } else {
                                 Alert.alert("Error", "Failed to remove user.");
@@ -261,36 +261,40 @@ export default function PermissionsScreen() {
 
         const isMe = item.uid === currentUser.uid;
         const isOwner = item.role === ROLES.OWNER;
-        
-        // Logic: Can edit if I am Admin/Owner AND (target is not Owner OR target is Me)
-        // Note: Even admins can't remove the owner, but they can demote themselves.
         const showEdit = canManage && (!isOwner || isMe);
 
         return (
             <View style={styles.userRow}>
+                {/* Avatar (Random Color) */}
                 <View style={[styles.avatar, { backgroundColor: stringToColor(item.email) }]}>
                     <Text style={styles.avatarText}>{getInitials(item.name || item.email)}</Text>
                 </View>
 
+                {/* User Info (Dynamic Colors) */}
                 <View style={styles.userInfo}>
-                    <Text style={styles.userName} numberOfLines={1}>
-                        {item.name || item.email} {isMe && <Text style={styles.meTag}>(Me)</Text>}
+                    <Text style={[styles.userName, { color: theme.textMain }]} numberOfLines={1}>
+                        {item.name || item.email} {isMe && <Text style={[styles.meTag, { color: theme.textSecondary }]}>(Me)</Text>}
                     </Text>
-                    <Text style={styles.userEmail} numberOfLines={1}>
+                    <Text style={[styles.userEmail, { color: theme.textSecondary }]} numberOfLines={1}>
                         {item.email}
                     </Text>
                 </View>
 
+                {/* Role (Dynamic Colors) */}
                 <TouchableOpacity 
                     style={styles.roleContainer}
                     disabled={!showEdit}
                     onPress={() => handleChangeRole(item)}
                 >
-                    <Text style={[styles.roleText, showEdit && styles.roleTextActive]}>
+                    <Text style={[
+                        styles.roleText, 
+                        // Inactive = Secondary Color, Active = Main Color
+                        { color: showEdit ? theme.textMain : theme.textSecondary } 
+                    ]}>
                         {getRoleName(item.role)}
                     </Text>
                     {showEdit && (
-                        <MaterialIcons name="arrow-drop-down" size={20} color="#5f6368" />
+                        <MaterialIcons name="arrow-drop-down" size={20} color={theme.textSecondary} />
                     )}
                 </TouchableOpacity>
             </View>
@@ -301,21 +305,26 @@ export default function PermissionsScreen() {
 
     if (loading) {
         return (
-            <View style={[styles.container, styles.center]}>
-                <ActivityIndicator size="large" color="#0b57d0" />
+            <View style={[styles.container, styles.center, { backgroundColor: theme.bgMain }]}>
+                <ActivityIndicator size="large" color={theme.brandBlue} />
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        // 3. Dynamic Container Background
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bgMain }]} edges={['top', 'bottom']}>
+            <StatusBar 
+                barStyle={isDarkMode ? "light-content" : "dark-content"} 
+                backgroundColor={theme.bgMain} 
+            />
             
-            <View style={styles.header}>
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-                    <MaterialIcons name="arrow-back" size={24} color="#444" />
+                    <MaterialIcons name="arrow-back" size={24} color={theme.textMain} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
+                <Text style={[styles.headerTitle, { color: theme.textMain }]} numberOfLines={1}>
                     Share "{fileName}"
                 </Text>
             </View>
@@ -325,12 +334,14 @@ export default function PermissionsScreen() {
                 style={{ flex: 1 }}
             >
                 {canManage && (
-                    <View style={styles.addSection}>
-                        <View style={styles.inputBox}>
-                            <MaterialIcons name="person-add-alt" size={20} color="#666" style={{marginRight: 8}} />
+                    <View style={[styles.addSection, { borderBottomColor: isDarkMode ? theme.bgForm : '#f8f9fa' }]}>
+                        {/* Input Box Background */}
+                        <View style={[styles.inputBox, { backgroundColor: theme.bgForm }]}>
+                            <MaterialIcons name="person-add-alt" size={20} color={theme.textSecondary} style={{marginRight: 8}} />
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { color: theme.textMain }]}
                                 placeholder="Add people (email)"
+                                placeholderTextColor={theme.textSecondary}
                                 value={newEmail}
                                 onChangeText={setNewEmail}
                                 keyboardType="email-address"
@@ -340,23 +351,25 @@ export default function PermissionsScreen() {
                         
                         {newEmail.length > 0 && (
                             <View style={styles.addActions}>
+                                {/* Role Dropdown */}
                                 <TouchableOpacity 
-                                    style={styles.newRoleBtn}
+                                    style={[styles.newRoleBtn, { backgroundColor: theme.bgForm, borderColor: theme.borderSubtle }]}
                                     onPress={handleSelectNewUserRole}
                                 >
-                                    <Text style={styles.newRoleText}>{getRoleName(newRole)}</Text>
-                                    <MaterialIcons name="arrow-drop-down" size={18} color="#666" />
+                                    <Text style={[styles.newRoleText, { color: theme.textSecondary }]}>{getRoleName(newRole)}</Text>
+                                    <MaterialIcons name="arrow-drop-down" size={18} color={theme.textSecondary} />
                                 </TouchableOpacity>
 
+                                {/* Send Button */}
                                 <TouchableOpacity onPress={handleAddUser}>
-                                    <Text style={styles.sendBtn}>Send</Text>
+                                    <Text style={[styles.sendBtn, { color: theme.brandBlue }]}>Send</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
                     </View>
                 )}
 
-                <Text style={styles.listTitle}>Who has access</Text>
+                <Text style={[styles.listTitle, { color: theme.textSecondary }]}>Who has access</Text>
 
                 <FlatList
                     data={getSortedPermissions()} 
@@ -366,13 +379,6 @@ export default function PermissionsScreen() {
                     showsVerticalScrollIndicator={true}
                 />
 
-                <View style={styles.footer}>
-                    <TouchableOpacity style={styles.copyLinkBtn} onPress={() => Alert.alert("Link Copied!")}>
-                        <MaterialIcons name="link" size={22} color="#444" />
-                        <Text style={styles.copyLinkText}>Copy link</Text>
-                    </TouchableOpacity>
-                </View>
-
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -381,7 +387,7 @@ export default function PermissionsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        // backgroundColor handled inline
     },
     center: {
         justifyContent: 'center',
@@ -393,14 +399,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        // borderBottomColor handled inline
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '400',
-        color: '#1f1f1f',
         marginLeft: 16,
         flex: 1,
+        // color handled inline
     },
     iconButton: {
         padding: 4,
@@ -408,20 +414,20 @@ const styles = StyleSheet.create({
     addSection: {
         padding: 16,
         borderBottomWidth: 8,
-        borderBottomColor: '#f8f9fa',
+        // borderBottomColor handled inline
     },
     inputBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f1f3f4',
         borderRadius: 8,
         paddingHorizontal: 12,
         height: 50,
+        // backgroundColor handled inline
     },
     input: {
         flex: 1,
         fontSize: 16,
-        color: '#333',
+        // color handled inline
     },
     addActions: {
         flexDirection: 'row',
@@ -433,31 +439,30 @@ const styles = StyleSheet.create({
     newRoleBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         borderWidth: 1,
-        borderColor: '#dadce0',
         borderRadius: 4,
         paddingVertical: 4,
         paddingHorizontal: 8,
+        // bg and border color handled inline
     },
     newRoleText: {
         fontSize: 13,
-        color: '#5f6368',
         fontWeight: '500',
         marginRight: 4,
+        // color handled inline
     },
     sendBtn: {
-        color: '#0b57d0',
         fontSize: 16,
         fontWeight: '600',
+        // color handled inline
     },
     listTitle: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#5f6368',
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 8,
+        // color handled inline
     },
     listContent: {
         paddingHorizontal: 16,
@@ -487,17 +492,17 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 16,
-        color: '#1f1f1f',
+        // color handled inline
     },
     meTag: {
-        color: '#666',
         fontSize: 14,
         fontWeight: '500', 
+        // color handled inline
     },
     userEmail: {
         fontSize: 13,
-        color: '#5f6368',
         marginTop: 2,
+        // color handled inline
     },
     roleContainer: {
         flexDirection: 'row',
@@ -505,28 +510,8 @@ const styles = StyleSheet.create({
     },
     roleText: {
         fontSize: 14,
-        color: '#5f6368',
         fontWeight: '500',
         marginRight: 2,
+        // color handled inline
     },
-    roleTextActive: {
-        color: '#1f1f1f',
-    },
-    footer: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 20, 
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-    },
-    copyLinkBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    copyLinkText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#444',
-    }
 });

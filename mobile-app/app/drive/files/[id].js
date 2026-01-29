@@ -17,10 +17,12 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
-// Import the API helper to communicate with the backend
 import * as api from '../../../utilities/api'; 
 
-// Preset colors matching the Web App for consistency
+// 1. Import Theme Hook and Data
+import { useTheme } from '../../../utilities/ThemeContext';
+import Themes from '../../../styles/themes';
+
 const PRESET_COLORS = [
     "#000000", "#434343", "#666666", "#999999", "#cccccc", "#efefef",
     "#980000", "#ff0000", "#ff9900", "#ffff00", "#00ff00", "#00ffff", 
@@ -29,69 +31,55 @@ const PRESET_COLORS = [
 
 export default function TextEditor() {
     const router = useRouter();
-    // Get the file ID from the URL params
     const { id } = useLocalSearchParams(); 
-    // Reference to the editor component to control it (get HTML, set focus, etc.)
     const richText = useRef(); 
 
-    // --- State Management ---
-    const [htmlContent, setHtmlContent] = useState(''); // Stores the actual HTML
-    const [fileName, setFileName] = useState("Loading...");
-    const [isLoading, setIsLoading] = useState(true); // Show spinner while fetching
-    const [isSaving, setIsSaving] = useState(false);  // Show spinner while saving
-    const [isReadOnly, setIsReadOnly] = useState(false); // If true, user can't edit
+    // 2. Get Theme
+    const { isDarkMode } = useTheme();
+    const theme = Themes[isDarkMode ? 'dark' : 'light'];
 
-    // Color Picker UI State
+    // --- State ---
+    const [htmlContent, setHtmlContent] = useState('');
+    const [fileName, setFileName] = useState("Loading...");
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
+
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [currentColor, setCurrentColor] = useState("#000000");
 
-    // --- 1. Load Data from Server ---
+    // --- Load Data ---
     useEffect(() => {
         const loadFile = async () => {
             try {
-                // Fetch file details (content, name)
                 const response = await api.getFileById(id);
-                
                 if (response.ok) {
                     const data = await response.json();
                     setFileName(data.name || "Untitled");
-                    // Use empty string if content is null to prevent crashes
                     setHtmlContent(data.content || ""); 
-                    
-                    // Check permissions: If role is 0, it means "Viewer" (Read Only)
                     const role = await api.getRole(id);
-                    if (role === 0) {
-                        setIsReadOnly(true);
-                    }
+                    if (role === 0) setIsReadOnly(true);
                 } else {
                     Alert.alert("Error", "Failed to load file content.");
-                    router.back(); // Go back if we can't load the file
+                    router.back();
                 }
             } catch (error) {
                 console.error("Error loading file:", error);
                 Alert.alert("Error", "Could not connect to server.");
             } finally {
-                setIsLoading(false); // Hide the main loading spinner
+                setIsLoading(false);
             }
         };
-
         loadFile();
     }, [id]);
 
-    // --- 2. Save Data to Server ---
+    // --- Save Data ---
     const handleSave = async () => {
-        // Double check: don't save if read-only
         if (isReadOnly) return;
-        
         setIsSaving(true);
         try {
-            // Extract the HTML string from the editor
             const contentToSave = await richText.current.getContentHtml();
-            
-            // Send PATCH request to update the file content
-            // We send it as an object { content: ... } to match the Web API structure
             const response = await api.patchFile(id, { content: contentToSave });
-
             if (response.ok) {
                 Alert.alert("Success", "File saved successfully");
             } else {
@@ -101,63 +89,70 @@ export default function TextEditor() {
             console.error("Save error:", error);
             Alert.alert("Error", "Network error while saving.");
         } finally {
-            setIsSaving(false); // Hide the saving spinner
+            setIsSaving(false);
         }
     };
 
-    // --- Helper Functions ---
-
-    // Change text color and close the modal
+    // --- Helpers ---
     const handleColorChange = (color) => {
         setCurrentColor(color);
-        // We must focus the editor first, otherwise the color won't apply to the selection
         richText.current?.focusContentEditor(); 
         richText.current?.setForeColor(color); 
         setShowColorPicker(false); 
     };
 
-    // Close the keyboard manually (used by the custom toolbar button)
     const handleDismissKeyboard = () => {
         richText.current?.blurContentEditor(); 
         Keyboard.dismiss(); 
     };
 
-    // --- Render Loading State ---
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0b57d0" />
-                <Text style={{ marginTop: 10, color: '#555' }}>Opening document...</Text>
+            // Dynamic Background
+            <View style={[styles.loadingContainer, { backgroundColor: theme.bgMain }]}>
+                <ActivityIndicator size="large" color={theme.brandBlue} />
+                <Text style={{ marginTop: 10, color: theme.textSecondary }}>Opening document...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F9FBFD" />
+        // Dynamic Background for Safe Area
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bgMain }]}>
+            <StatusBar 
+                barStyle={isDarkMode ? "light-content" : "dark-content"} 
+                backgroundColor={theme.bgMain} 
+            />
             
             {/* --- Header Section --- */}
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: theme.bgMain, borderBottomColor: theme.borderSubtle }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-                    <MaterialIcons name="arrow-back" size={24} color="#444" />
+                    <MaterialIcons name="arrow-back" size={24} color={theme.textMain} />
                 </TouchableOpacity>
                 
-                <Text style={styles.fileName} numberOfLines={1}>
+                <Text style={[styles.fileName, { color: theme.textMain }]} numberOfLines={1}>
                     {fileName}
-                    {isReadOnly && <Text style={{fontSize: 12, color: '#666'}}> (Read Only)</Text>}
+                    {isReadOnly && <Text style={{fontSize: 12, color: theme.textSecondary }}> (Read Only)</Text>}
                 </Text>
 
-                {/* Save Button: Only visible if user has edit permissions */}
+                {/* Save Button */}
                 {!isReadOnly && (
                     <TouchableOpacity 
-                        style={[styles.saveBtn, isSaving && { opacity: 0.7 }]} 
+                        // Dynamic Save Button Colors
+                        style={[
+                            styles.saveBtn, 
+                            { backgroundColor: isDarkMode ? theme.brandBlue : '#C2E7FF' },
+                            isSaving && { opacity: 0.7 }
+                        ]} 
                         onPress={handleSave}
                         disabled={isSaving}
                     >
                         {isSaving ? (
-                            <ActivityIndicator size="small" color="#001D35" />
+                            <ActivityIndicator size="small" color={isDarkMode ? theme.bgMain : "#001D35"} />
                         ) : (
-                            <Text style={styles.saveBtnText}>Save</Text>
+                            <Text style={[styles.saveBtnText, { color: isDarkMode ? theme.bgMain : "#001D35" }]}>
+                                Save
+                            </Text>
                         )}
                     </TouchableOpacity>
                 )}
@@ -166,31 +161,22 @@ export default function TextEditor() {
             {/* --- Editor & Toolbar Section --- */}
             <KeyboardAvoidingView 
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.container}
+                style={[styles.container, { backgroundColor: theme.bgMain }]}
             >
-                {/* Toolbar: Hidden in Read-Only mode */}
+                {/* Toolbar */}
                 {!isReadOnly && (
-                    <View style={styles.toolbarContainer}>
+                    <View style={[styles.toolbarContainer, { backgroundColor: theme.bgMain, borderBottomColor: theme.borderSubtle }]}>
                         <RichToolbar
                             editor={richText}
-                            selectedIconTint="#0b57d0" // Blue for active tools
-                            iconTint="#444" // Gray for inactive tools
-                            style={styles.richToolbar}
+                            selectedIconTint={theme.brandBlue} 
+                            iconTint={theme.textMain} 
+                            style={[styles.richToolbar, { backgroundColor: theme.bgMain }]}
                             actions={[
-                                actions.undo,
-                                actions.redo,
-                                actions.setBold,
-                                actions.setItalic,
-                                actions.setUnderline,
-                                actions.insertBulletsList,
-                                actions.insertOrderedList,
-                                actions.alignLeft,
-                                actions.alignCenter,
-                                actions.alignRight,
-                                'customColorPicker', // Custom action key
-                                actions.keyboard,    // Custom action key
+                                actions.undo, actions.redo, actions.setBold, actions.setItalic,
+                                actions.setUnderline, actions.insertBulletsList, actions.insertOrderedList,
+                                actions.alignLeft, actions.alignCenter, actions.alignRight,
+                                'customColorPicker', actions.keyboard,
                             ]}
-                            // Map custom keys to icons
                             iconMap={{
                                 customColorPicker: ({tintColor}) => (
                                     <MaterialIcons name="format-color-text" size={20} color={currentColor} />
@@ -199,10 +185,9 @@ export default function TextEditor() {
                                     <MaterialIcons name="keyboard-hide" size={20} color={tintColor} />
                                 ),
                             }}
-                            // Define what happens when custom buttons are pressed
-                            onPressAddImage={() => {}} // Disable image button
+                            onPressAddImage={() => {}} 
                             customColorPicker={() => {
-                                Keyboard.dismiss(); // Hide keyboard to show modal clearly
+                                Keyboard.dismiss(); 
                                 setShowColorPicker(true);
                             }}
                             onPressKeyboard={handleDismissKeyboard}
@@ -214,21 +199,23 @@ export default function TextEditor() {
                     <View style={[styles.paperShadow, isReadOnly && styles.readOnlyPaper]}>
                         <RichEditor
                             ref={richText}
-                            initialContentHTML={htmlContent} // Load the content fetched from server
+                            initialContentHTML={htmlContent} 
                             placeholder={isReadOnly ? "" : "Start typing..."}
-                            disabled={isReadOnly} // Disable editing if read-only
+                            disabled={isReadOnly}
+                            // --- CRITICAL: Pass Theme Colors to WebView Editor ---
                             editorStyle={{
-                                backgroundColor: isReadOnly ? '#fafafa' : '#ffffff',
-                                color: '#000000',
-                                contentCSSText: 'font-size: 16px; line-height: 24px; min-height: 600px;',
+                                backgroundColor: theme.bgPrimary, // White (Light) vs DarkGray (Dark)
+                                color: theme.textMain,            // Black (Light) vs White (Dark)
+                                placeholderColor: theme.textSecondary,
+                                contentCSSText: `font-size: 16px; line-height: 24px; min-height: 600px; color: ${theme.textMain};`,
                             }}
-                            style={styles.richEditor}
-                            useContainer={false} // Needed for proper scrolling inside ScrollView
+                            style={[styles.richEditor, { backgroundColor: theme.bgPrimary }]}
+                            useContainer={false} 
                         />
                     </View>
                 </ScrollView>
 
-                {/* --- Custom Color Picker Modal --- */}
+                {/* --- Color Picker Modal --- */}
                 <Modal
                     visible={showColorPicker}
                     transparent={true}
@@ -240,16 +227,17 @@ export default function TextEditor() {
                         activeOpacity={1} 
                         onPress={() => setShowColorPicker(false)}
                     >
-                        <View style={styles.colorPopup}>
-                            <Text style={styles.modalTitle}>Select Color</Text>
+                        {/* Dynamic Modal Background */}
+                        <View style={[styles.colorPopup, { backgroundColor: theme.bgForm }]}>
+                            <Text style={[styles.modalTitle, { color: theme.textMain }]}>Select Color</Text>
                             <View style={styles.colorGrid}>
                                 {PRESET_COLORS.map((color) => (
                                     <TouchableOpacity
                                         key={color}
                                         style={[
                                             styles.colorSwatch, 
-                                            { backgroundColor: color },
-                                            currentColor === color && styles.selectedSwatch
+                                            { backgroundColor: color, borderColor: theme.borderSubtle },
+                                            currentColor === color && [styles.selectedSwatch, { borderColor: theme.textMain }]
                                         ]}
                                         onPress={() => handleColorChange(color)}
                                     />
@@ -267,39 +255,36 @@ export default function TextEditor() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#F9FBFD',
+        // backgroundColor handled inline
     },
     container: {
         flex: 1,
-        backgroundColor: '#F0F2F5',
+        // backgroundColor handled inline
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // --- Header Styles ---
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         height: 50,
-        backgroundColor: '#F9FBFD',
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        // Colors handled inline
     },
     iconButton: { padding: 8 },
     fileName: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#1f1f1f',
         flex: 1,
         marginLeft: 12,
         textAlign: 'center',
     },
     saveBtn: {
-        backgroundColor: '#C2E7FF',
+        // backgroundColor handled inline
         paddingVertical: 6,
         paddingHorizontal: 16,
         borderRadius: 20,
@@ -307,22 +292,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     saveBtnText: {
-        color: '#001D35',
         fontWeight: '600',
         fontSize: 14,
+        // color handled inline
     },
-    // --- Toolbar Styles ---
     toolbarContainer: {
-        backgroundColor: '#F9FBFD',
         borderBottomWidth: 1,
-        borderBottomColor: '#dadce0',
         height: 50,
         justifyContent: 'center',
+        // Colors handled inline
     },
     richToolbar: {
-        backgroundColor: '#F9FBFD',
+        // Colors handled inline
     },
-    // --- Editor Styles ---
     editorScroll: {
         padding: 16,
         flexGrow: 1,
@@ -343,7 +325,6 @@ const styles = StyleSheet.create({
         minHeight: 600,
         borderRadius: 2,
     },
-    // --- Color Modal Styles ---
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -351,7 +332,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     colorPopup: {
-        backgroundColor: 'white',
         padding: 20,
         borderRadius: 16,
         width: 320,
@@ -360,13 +340,14 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
+        // backgroundColor handled inline
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: '600',
         marginBottom: 20,
-        color: '#333',
         textAlign: 'center',
+        // color handled inline
     },
     colorGrid: {
         flexDirection: 'row',
@@ -374,17 +355,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 15,
     },
-    // Fixed size swatches to ensure they are always round circles
     colorSwatch: {
         width: 48,
         height: 48,
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#eee',
+        // borderColor handled inline
     },
     selectedSwatch: {
         borderWidth: 3,
-        borderColor: '#444',
         transform: [{ scale: 1.1 }]
     }
 });

@@ -1,69 +1,38 @@
-# AdvanceProg-Part4
-## What the project is about?
-This is the **fourth** stage of a building a working drive for the course "Advanced Programming". In this part of the project we have implement the GUI part. We used *React* to connect with our previous servers, and make it accessable for the user.
+# Advanced Proggraming - LOT Drive
+> A comprehensive, Google Drive-like cloud storage solution featuring a robust C++ file server, a Node.js metadata server, and a cross-platform React Native client & React client.
 
-## UML
-### $\color{pink}{\text{File Server UML}}$
-![Server UML](images/UML-SERVER.png)
+## 📖 Documentation Wiki
+Welcome to the project documentation. Please navigate through the sections below to understand the system architecture, how to run it, and how to use it.
 
-### $\color{pink}{\text{Web Server UML}}$
-![Web UML](images/UML-WEB.png)
+| Section | Description |
+| :--- | :--- |
+| 🏗️ **[Architecture & Design](docs/ARCHITECTURE.md)** | UML diagrams, component breakdown, and system logic. |
+| 🚀 **[Installation & Running](docs/INSTALLATION.md)** | Step-by-step guide to build and launch the system using Docker. |
+| 📱 **[User Guide & Screenshots](docs/USER_GUIDE.md)** | detailed walkthrough of the **Mobile App** UI, pages, and features (Dark mode, Editor, etc.). |
+| 🎥 **[Video Demos](docs/DEMOS.md)** | detailed walkthrough of the **Web App** UI, pages, and features (Dark mode, Editor, etc.). |
 
-### $\color{pink}{\text{Web App UML}}$
-![Web App](images/UML-APP.png)
+## ⚡ Quick Start
+If you just want to get the system running immediately:
 
-## Running the Project
-### Building all images
-To run the project, type
+1. **Prerequisites**: Ensure you have [Docker](https://www.docker.com/) and Docker Compose installed.
+2. **Run the Build Command**:
 ```bash
-docker compose up --build file_server web_server web app
+docker compose --profile drive up --build -d
 ```
-* The `file server` is the server in charge of saving the files.
-* The `web server` is the server in charge of the metadata, users and permissions management.
-* The `web app` is the view tier. It's incharge of presenting the project in a comftable way to the user.
 
-When running the command above, all of our code will compile and run. Then, to use the app, simply go to your favourite web browser and browse for `localhost:3000`.
-## The different pages
-### Welcome page
-![welcome](images/welcome.png)
-### Log-in page
-![login](images/login.png)
-### Sign-up page
-![signup](images/signup.png)
-### Sign-up page
-![signup](images/signup.png)
-### Main page
-![mainpage](images/mainpage.png)
-### Text editor
-![text editor](images/textEditor.png)
-![text editor](images/textEditorDark.png)
-### Image viewer
-![image viewer](images/imageViewer.png)
-### File menu
-You can reach the file menu by clicking on the three dots to the side or by right clicking the file/directory.
-![file menu](images/fileMenu.png)
-### Move screen
-![move screen](images/moveScreen.png)
-### Rename screen
-![rename screen](images/renameScreen.png)
-## Running Videos
-### Connecting to the server
-In this video we show how to Sign up and how to Log in:  
-<video src="https://github.com/user-attachments/assets/6aa8d47e-07bd-4df5-9671-89ece88c1c67" controls width="600"></video>
+3. **Access the Web App**:  
+Open your browser and navigate to `http://localhost:3000`.  
+4. **Access the Mobile App**:  
+Open your phone on the application `expo go` and enter in it `exp://*ip*:8081` where ip is the ip of the pc the react native project is running on.
 
-### Share
-In this video we show how to share files between different users:  
-<video src="https://github.com/user-attachments/assets/c09cbb59-ee84-4ecf-b110-4b50765cdbaa" controls width="600"></video>
+## 🛠️ Tech Stack
 
-### Simple Files
-In this video we show how to: upload text files and image files, create new text files, and create new folders.
-<video src="https://github.com/user-attachments/assets/cc3afa19-fbbe-4307-8582-c1dbcdc7fdfc" controls width="600"></video>
+* **Client**: React & React Native, written in javascript and typescript.
+* **Web Server**: Node.js / Express (Metadata & Permissions).
+* **File Server**: C++ (Raw Data Storage).
+* **Infrastructure**: Docker Compose.
 
-### More Featuers
-In this video we show several additional features our drive support: renaming files, starring files, trashing files, and even downloading them in a matching format.
-<video src="https://github.com/user-attachments/assets/2806a25c-9bab-459d-b54e-be097b87e4a3" controls width="600"></video>
+---
 
-### Dark Mode + Search
-In this video we show how the search works and the dark mode also.
-<video src="https://github.com/kingcodeguru/AdvanceProg-Part4/issues/5#issue-3827318223" controls width="600"></video>
+*Created as part of the Advanced Programming Course.*
 

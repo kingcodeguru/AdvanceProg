@@ -11,7 +11,7 @@ const light = {
   bgMain: '#f8fafd',        // var(--bg-main)
   bgPrimary: '#ffffff',     // var(--bg-primary)
   bgForm: '#ffffff',        // var(--bg-form)
-  bgHover: '#f1f3f4',       // var(--bg-hover) (removed alpha for RN compatibility)
+  bgHover: '#f1f3f4',       // var(--bg-hover)
   
   textMain: '#202124',      // var(--text-main)
   textSecondary: '#5f6368', // var(--text-secondary)

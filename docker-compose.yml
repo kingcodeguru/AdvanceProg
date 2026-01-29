@@ -16,7 +16,7 @@ services:
   # second executable: fileServer
   # --------------------------------------------------------------------------
   file_server:
-    profiles: ["drive", "test_file_server"]
+    profiles: ["drive", "test_file_server", "servers"]
     build:
       context: .
       dockerfile: src/File_Server/Dockerfile.server
@@ -66,7 +66,7 @@ services:
   # fifth executable: web server
   # --------------------------------------------------------------------------
   web_server:
-    profiles: ["drive"]
+    profiles: ["drive", "servers"]
     build:
       context: .
       dockerfile: src/Web_Server/Dockerfile.server
@@ -97,14 +97,32 @@ services:
       - WS_IP=web_server
       - WS_PORT=8080
     command: ["npm", "start"]
+
   # --------------------------------------------------------------------------
   # seventh executable: mongo database
   # --------------------------------------------------------------------------
   mongo_db:
-    profiles: ["drive"]
+    profiles: ["drive", "servers"]
     image: mongo:latest
     container_name: drive-mongo-db
     ports:
       - "27017:27017"
     volumes:
       - mongo_volume:/data/db
+    
+  # --------------------------------------------------------------------------
+  # eighth executable: mobile app
+  # --------------------------------------------------------------------------
+  mobile_app:
+    profiles: ["drive"]
+    build:
+      context: ./mobile-app
+      dockerfile: Dockerfile.app
+    container_name: drive-mobile-app
+    ports:
+      - "8081:8081"
+    environment:
+      - MOBILE_PORT=8081
+      - WS_IP=web_server
+      - WS_PORT=8080
+    command: ["npx", "expo", "start"]
