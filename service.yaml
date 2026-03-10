@@ -1,0 +1,32 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: drive-stack
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    spec:
+      containers:
+        # WEB APP (This must be the one listening on the Cloud Run port)
+        - image: gcr.io/PROJECT_ID/web-app
+          ports:
+            - containerPort: 3000
+          env:
+            - name: WS_IP
+              value: "localhost" # Internal communication is ALWAYS localhost here
+
+        # FILE SERVER
+        - image: gcr.io/PROJECT_ID/file-server
+          env:
+            - name: DRIVE_APP_DIR
+              value: "dir"
+
+        # WEB SERVER
+        - image: gcr.io/PROJECT_ID/web-server
+          env:
+            - name: FS_IP
+              value: "localhost"
+
+        # MONGO DB
+        - image: mongo:latesta
