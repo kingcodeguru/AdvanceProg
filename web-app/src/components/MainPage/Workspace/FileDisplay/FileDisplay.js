@@ -65,11 +65,11 @@ function FileDisplay({refreshSignal}) {
         navigate('/');
       } else if (response.status === 403) {
         alert("You don't have permission to access this folder.");
-        navigate('/drive/home');
+        navigate('/drive/all');
       } else {
         const data = await response.json();
         alert(`${data.error}`);
-        navigate('/drive/home');
+        navigate('/drive/all');
       }
     } catch (error) {
       console.error("Workspace fetch error:", error);

@@ -23,7 +23,7 @@ function LogIn() {
         if (token) {
           localStorage.setItem('userToken', token);
           // Standardized to navigate to /drive/home
-          navigate('/drive/home'); 
+          navigate('/drive/all'); 
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
